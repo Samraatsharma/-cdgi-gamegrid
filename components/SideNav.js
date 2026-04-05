@@ -20,8 +20,8 @@ const studentLinks = [
 export default function SideNav({ role = 'student' }) {
   const pathname = usePathname();
   const links = role === 'admin' ? adminLinks : studentLinks;
-  const brand = role === 'admin' ? 'GAMEGRID ADMIN' : 'GAMEGRID';
-  const subtitle = role === 'admin' ? 'Control Panel' : 'Elite Performance';
+  const brand = role === 'admin' ? 'SPORTS SPHERE ADMIN' : 'SPORTS SPHERE';
+  const subtitle = role === 'admin' ? 'Administrative Portal' : 'Student Portal';
 
   return (
     <nav className="h-screen w-20 hover:w-64 fixed left-0 top-0 transition-all duration-500 z-40 bg-zinc-950 flex flex-col py-8 gap-8 shadow-2xl group overflow-hidden border-r border-zinc-900/50">

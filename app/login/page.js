@@ -11,10 +11,13 @@ function LoginForm() {
   const registered = searchParams?.get('registered');
 
   const [role, setRole] = useState('student');
-  const [formData, setFormData] = useState({ identifier: '', password: '' });
+  const [formData, setFormData] = useState({ identifier: '', password: '', rememberMe: false });
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
+    // If already logged in, move to dashboard
     const userStr = localStorage.getItem('user');
     if (userStr) {
       try {
@@ -23,34 +26,37 @@ function LoginForm() {
         else router.push('/dashboard/student');
       } catch(e) {}
     }
-    if (registered) toast.success('Registration successful! Please login.');
-  }, [registered, router]);
+  }, [router]);
+
+  const validate = () => {
+    const newErrors = {};
+    if (!formData.identifier.trim()) newErrors.identifier = 'Identifier is required';
+    if (role === 'student' && !formData.identifier.includes('@')) newErrors.identifier = 'Valid email required';
+    if (formData.password.length < 6) newErrors.password = 'Minimum 6 characters';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (formData.identifier.trim().length <= 2 || formData.password.length <= 3) {
-        toast.error('Invalid credentials format.');
-        return;
-    }
-
+    if (!validate()) return;
+    
     setLoading(true);
-
-    const payload = {
-      email: formData.identifier.trim(),
-      password: formData.password.trim(),
-      role
-    };
-
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          email: formData.identifier.trim(),
+          password: formData.password.trim(),
+          role
+        })
       });
       const data = await res.json();
       
       if (!res.ok) throw new Error(data.error || 'Login failed');
 
+      // Persist session
       localStorage.setItem('user', JSON.stringify(data.user));
       toast.success(`Welcome back, ${data.user.name ? data.user.name.split(' ')[0] : 'Admin'} ⚡`);
       
@@ -58,159 +64,153 @@ function LoginForm() {
       else router.push('/dashboard/student');
 
     } catch (err) {
-       toast.error(err.message || "Authentication Failed.");
+       if (err.message === 'ACCOUNT_NOT_FOUND') {
+         toast.error(
+           <span>
+             No account found. <Link href="/register" className="underline font-bold">Register Now ⚡</Link>
+           </span>,
+           { duration: 6000 }
+         );
+       } else {
+         toast.error(err.message || "Authentication Failed.");
+       }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="bg-surface-container-lowest text-on-surface min-h-screen overflow-x-hidden flex items-center justify-center relative">
+    <div className="bg-surface-container-lowest text-on-surface min-h-screen flex items-center justify-center relative overflow-hidden">
       {/* Background Cinematic Shell */}
       <div className="fixed inset-0 z-0">
         <img 
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuApBd2NEHSjWExdBzsszXHrxeq73yjZR72GX5OG2u7mSCwcgAREInWTS3sIUogumkw1d5HzKLRMfscqJ4buPiUL3vSFi6gr9g1dNEhZVjZZJG_RkLKo1DGi5jefUdbjz4Ryy6HpjjWqZrwD9AzZLGciD_NYH0R1qBTjBS19w2Ogagh4Lc_tNg9sceKwRvTgLt7SMyeuKcJ2PWMwIq9vw3icLoaV8PyRu3xy0cRzFofEASv9ZcUBz1XPToWVHSPDtZ66wF8CLLaRBzkB" 
-          className="w-full h-full object-cover filter brightness-50 contrast-125 saturate-50" 
+          src="https://images.unsplash.com/photo-1543326162-8534015fbe8e?q=80&w=2048" 
+          className="w-full h-full object-cover grayscale opacity-30" 
           alt="Stadium background" 
         />
-        <div className="absolute inset-0 stadium-overlay"></div>
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-surface-container-lowest/40 to-surface-container-lowest"></div>
+        <div className="absolute inset-0 bg-gradient-to-tr from-surface-container-lowest via-transparent to-surface-container-lowest/80" />
       </div>
 
       <main className="relative z-10 w-full max-w-md px-6 py-12">
         {/* Brand Identity Section */}
         <div className="text-center mb-10">
           <Link href="/">
-            <h1 className="text-6xl font-black italic tracking-tighter text-primary font-headline mb-2 drop-shadow-2xl cursor-pointer">
-              CDGI GameGrid
+            <h1 className="text-7xl font-black italic tracking-tighter text-primary font-headline mb-2 hover:scale-[1.02] transition-transform cursor-pointer">
+              Sports Sphere
             </h1>
           </Link>
-          <p className="font-headline text-[10px] uppercase tracking-[0.3em] text-secondary font-bold">
-            Elite Performance Management
-          </p>
-          <p className="text-on-surface-variant text-xs mt-1 font-medium">
-            Chameli Devi Group
+          <p className="font-headline text-[10px] uppercase tracking-[0.4em] text-on-surface-variant font-black">
+            CDGI Sports Management
           </p>
         </div>
 
-        {/* Glassmorphism Login Card */}
-        <div className="glass-card p-10 rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border-t-2 border-primary/30 relative group overflow-hidden">
-          {/* Accent Glows */}
-          <div className="absolute -top-24 -left-24 w-48 h-48 bg-primary/10 rounded-full blur-[80px]"></div>
-          <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-secondary/10 rounded-full blur-[80px]"></div>
+        {/* Login Card */}
+        <div className="bg-surface-container p-10 rounded-2xl border border-outline-variant/10 shadow-2xl relative group">
+          <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/5 blur-3xl pointer-events-none" />
           
-          <form className="space-y-8 relative z-10" onSubmit={handleSubmit}>
+          <form className="space-y-8 relative z-10" onSubmit={handleSubmit} noValidate>
             {/* Role Toggle */}
-            <div className="bg-surface-container-low p-1 rounded-lg flex items-center gap-1 border border-outline-variant/20">
+            <div className="bg-surface-container-lowest p-1 rounded-xl flex items-center gap-1 border border-outline-variant/10">
               <button 
                 type="button" 
                 onClick={() => setRole('admin')}
-                className={`flex-1 py-2.5 px-4 text-xs font-headline font-bold uppercase tracking-widest rounded transition-all duration-300 ${role === 'admin' ? 'bg-primary text-on-primary shadow-[0_0_15px_rgba(184,253,55,0.3)]' : 'text-on-surface-variant hover:text-on-surface'}`}
+                className={`flex-1 py-3 px-4 text-xs font-headline font-black italic uppercase tracking-widest rounded-lg transition-all duration-300 ${role === 'admin' ? 'bg-primary text-on-primary shadow-xl' : 'text-on-surface-variant hover:text-on-surface'}`}
               >
-                Admin
+                ADMIN
               </button>
               <button 
                 type="button" 
                 onClick={() => setRole('student')}
-                className={`flex-1 py-2.5 px-4 text-xs font-headline font-bold uppercase tracking-widest rounded transition-all duration-300 ${role === 'student' ? 'bg-primary text-on-primary shadow-[0_0_15px_rgba(184,253,55,0.3)]' : 'text-on-surface-variant hover:text-on-surface'}`}
+                className={`flex-1 py-3 px-4 text-xs font-headline font-black italic uppercase tracking-widest rounded-lg transition-all duration-300 ${role === 'student' ? 'bg-primary text-on-primary shadow-xl' : 'text-on-surface-variant hover:text-on-surface'}`}
               >
-                Student
+                STUDENT
               </button>
             </div>
 
             {/* Input Group */}
-            <div className="space-y-5">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-headline font-black uppercase tracking-widest text-on-surface-variant ml-1">
-                  Access Identifier
+            <div className="space-y-6">
+              <div className="group">
+                <label className="block text-[10px] font-headline font-black uppercase tracking-widest text-on-surface-variant mb-2 group-focus-within:text-primary transition-colors">
+                  EMAIL ADDRESS
                 </label>
-                <div className="relative group">
-                  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors text-lg">person</span>
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors text-xl">person</span>
                   <input 
                     type="text" 
-                    className="w-full bg-surface-container-highest/50 border-none ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary py-4 pl-12 pr-4 rounded-lg text-on-surface placeholder:text-on-surface-variant/40 font-medium transition-all outline-none" 
-                    placeholder={role === 'admin' ? "Admin Username" : "Student Email"}
+                    className={`w-full bg-surface-container-highest/40 border ${errors.identifier ? 'border-error' : 'border-outline-variant/10'} focus:border-primary focus:ring-1 focus:ring-primary/30 py-4 pl-12 pr-4 rounded-xl text-on-surface placeholder:text-on-surface-variant/40 font-headline text-sm tracking-widest transition-all outline-none`} 
+                    placeholder={role === 'admin' ? "ADMIN USERNAME" : "STUDENT EMAIL"}
                     value={formData.identifier}
-                    onChange={(e) => setFormData({...formData, identifier: e.target.value})}
-                    required
+                    onChange={(e) => {
+                      setFormData({...formData, identifier: e.target.value});
+                      if (errors.identifier) setErrors({...errors, identifier: null});
+                    }}
                   />
+                  {errors.identifier && <p className="text-[9px] font-bold text-error mt-1 ml-1 uppercase tracking-widest">{errors.identifier}</p>}
                 </div>
               </div>
               
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-headline font-black uppercase tracking-widest text-on-surface-variant ml-1">
-                  Secure Key
+              <div className="group">
+                <label className="block text-[10px] font-headline font-black uppercase tracking-widest text-on-surface-variant mb-2 group-focus-within:text-primary transition-colors">
+                  PASSWORD
                 </label>
-                <div className="relative group">
-                  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors text-lg">lock</span>
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors text-xl">lock</span>
                   <input 
-                    type="password" 
-                    className="w-full bg-surface-container-highest/50 border-none ring-1 ring-outline-variant/30 focus:ring-2 focus:ring-primary py-4 pl-12 pr-4 rounded-lg text-on-surface placeholder:text-on-surface-variant/40 font-medium transition-all outline-none" 
+                    type={showPassword ? "text" : "password"} 
+                    className={`w-full bg-surface-container-highest/40 border ${errors.password ? 'border-error' : 'border-outline-variant/10'} focus:border-primary focus:ring-1 focus:ring-primary/30 py-4 pl-12 pr-12 rounded-xl text-on-surface placeholder:text-on-surface-variant/40 font-headline text-sm tracking-widest transition-all outline-none`} 
                     placeholder="••••••••" 
                     value={formData.password}
-                    onChange={(e) => setFormData({...formData, password: e.target.value})}
-                    required
+                    onChange={(e) => {
+                      setFormData({...formData, password: e.target.value});
+                      if (errors.password) setErrors({...errors, password: null});
+                    }}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-lg">
+                      {showPassword ? 'visibility_off' : 'visibility'}
+                    </span>
+                  </button>
+                  {errors.password && <p className="text-[9px] font-bold text-error mt-1 ml-1 uppercase tracking-widest">{errors.password}</p>}
                 </div>
               </div>
             </div>
 
-            {/* Action Section */}
-            <div className="space-y-6 pt-2">
-              <button 
-                type="submit" 
-                disabled={loading}
-                className="w-full bg-primary hover:bg-primary-container text-on-primary font-headline font-black italic uppercase py-5 rounded-lg text-lg tracking-tighter transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-[0_10px_30px_rgba(184,253,55,0.2)] hover:shadow-[0_15px_40px_rgba(184,253,55,0.4)] flex items-center justify-center gap-3 disabled:opacity-50"
-              >
-                {loading ? 'Authenticating...' : 'Initialize Session'}
-                <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
-              </button>
-              
-              <div className="flex items-center justify-between px-1">
-                <Link href="/register" className="text-[10px] font-headline font-bold uppercase tracking-widest text-on-surface-variant hover:text-secondary transition-colors">
-                  Create Account
-                </Link>
-                <div className="h-1 w-1 rounded-full bg-outline-variant/30"></div>
-                <a href="#" className="text-[10px] font-headline font-bold uppercase tracking-widest text-on-surface-variant hover:text-secondary transition-colors">
-                  System Support
-                </a>
-              </div>
+            {/* Remember Me & Utility */}
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <input 
+                  type="checkbox" 
+                  className="w-4 h-4 rounded border-outline-variant/20 bg-surface-container-highest text-primary focus:ring-primary transition-all"
+                  checked={formData.rememberMe}
+                  onChange={(e) => setFormData({...formData, rememberMe: e.target.checked})}
+                />
+                <span className="text-[10px] font-headline font-black italic uppercase tracking-widest text-on-surface-variant group-hover:text-on-surface transition-colors">Remember Me</span>
+              </label>
+              <a href="#" className="text-[9px] font-headline font-black italic uppercase tracking-widest text-primary hover:underline">Forgot?</a>
+            </div>
+
+            {/* Submit Section */}
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="w-full bg-primary hover:bg-primary-container text-on-primary font-headline font-black italic uppercase py-5 rounded-xl text-lg tracking-widest transition-all duration-300 shadow-[0_10px_30px_rgba(184,253,55,0.3)] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3"
+            >
+              {loading ? 'LOGGING IN...' : 'LOGIN'}
+              <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>login</span>
+            </button>
+            
+            <div className="text-center">
+              <p className="text-[10px] font-headline font-bold uppercase tracking-widest text-on-surface-variant/40">
+                New user? <Link href="/register" className="text-secondary hover:text-secondary-container transition-colors">Create an account</Link>
+              </p>
             </div>
           </form>
         </div>
-
-        {/* Footer Utility */}
-        <footer className="mt-12 text-center space-y-4">
-          <div className="flex justify-center items-center gap-6">
-            <div className="flex flex-col items-center opacity-50 hover:opacity-100 transition-opacity">
-              <span className="material-symbols-outlined text-primary mb-1">security</span>
-              <span className="text-[9px] font-headline font-bold uppercase tracking-tighter">Biometric Ready</span>
-            </div>
-            <div className="h-8 w-px bg-outline-variant/20"></div>
-            <div className="flex flex-col items-center opacity-50 hover:opacity-100 transition-opacity">
-              <span className="material-symbols-outlined text-secondary mb-1">speed</span>
-              <span className="text-[9px] font-headline font-bold uppercase tracking-tighter">Low Latency</span>
-            </div>
-            <div className="h-8 w-px bg-outline-variant/20"></div>
-            <div className="flex flex-col items-center opacity-50 hover:opacity-100 transition-opacity">
-              <span className="material-symbols-outlined text-on-surface-variant mb-1">verified</span>
-              <span className="text-[9px] font-headline font-bold uppercase tracking-tighter">CDGI Certified</span>
-            </div>
-          </div>
-          <p className="text-[10px] text-on-surface-variant/40 font-medium tracking-tight">
-            © 2024 CDGI GameGrid. Engineered for Velocity. Restricted Access.
-          </p>
-        </footer>
       </main>
-
-      {/* Aesthetic Corner Ticker */}
-      <div className="fixed bottom-8 left-8 hidden lg:block border-l border-primary/20 pl-4 py-2">
-        <div className="flex items-center gap-2 text-primary">
-          <span className="material-symbols-outlined text-sm">sensors</span>
-          <span className="text-[10px] font-headline font-black italic uppercase tracking-widest">System Online</span>
-        </div>
-        <div className="text-[9px] text-on-surface-variant font-medium mt-1">Core Performance Node: IND-04</div>
-      </div>
     </div>
   );
 }

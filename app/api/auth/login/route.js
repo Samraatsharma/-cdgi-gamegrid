@@ -14,15 +14,38 @@ export async function POST(req) {
     if (role === 'admin') {
       const admin = await db.get('SELECT * FROM admin WHERE username = ? AND password = ?', [email, password]);
       if (admin) {
-        return NextResponse.json({ success: true, user: { id: admin.id, username: admin.username, role: 'admin' } });
+        return NextResponse.json({ 
+          success: true, 
+          user: { 
+            id: admin.id, 
+            username: admin.username, 
+            role: 'admin' 
+          } 
+        });
       }
       return NextResponse.json({ error: 'Invalid admin credentials' }, { status: 401 });
     } else {
-      const student = await db.get('SELECT * FROM students WHERE email = ? AND password = ?', [email, password]);
-      if (student) {
-        return NextResponse.json({ success: true, user: { id: student.id, name: student.name, email: student.email, role: 'student' } });
+      // 1. Check if the email even exists first
+      const emailExists = await db.get('SELECT id FROM students WHERE email = ?', [email]);
+      if (!emailExists) {
+        return NextResponse.json({ error: 'ACCOUNT_NOT_FOUND' }, { status: 404 });
       }
-      return NextResponse.json({ error: 'Invalid student credentials' }, { status: 401 });
+
+      // 2. If it exists, verify the password
+      const query = 'SELECT id, name, email, roll_number, branch, year, section, phone, wins FROM students WHERE email = ? AND password = ?';
+      const studentData = await db.get(query, [email, password]);
+
+      if (studentData) {
+        return NextResponse.json({ 
+          success: true, 
+          user: { 
+            ...studentData,
+            role: 'student' 
+          } 
+        });
+      }
+      
+      return NextResponse.json({ error: 'Invalid credentials. Check your password.' }, { status: 401 });
     }
   } catch (error) {
     console.error('Login Error:', error);

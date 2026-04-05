@@ -2,51 +2,129 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import SideNav from '../../../components/SideNav';
+import { toast } from 'react-hot-toast';
+
+const STATUS_CONFIG = {
+  registration_open: { label: 'Open', color: 'bg-primary/20 text-primary', dot: 'bg-primary' },
+  upcoming:          { label: 'Upcoming', color: 'bg-yellow-500/20 text-yellow-400', dot: 'bg-yellow-400' },
+  ongoing:           { label: 'Live Now', color: 'bg-orange-500/20 text-orange-400', dot: 'bg-orange-400' },
+  completed:         { label: 'Completed', color: 'bg-zinc-500/20 text-zinc-400', dot: 'bg-zinc-400' },
+};
 
 export default function StudentDashboard() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [registrations, setRegistrations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [cancelling, setCancelling] = useState(null);
 
   useEffect(() => {
     const usrStr = localStorage.getItem('user');
     if (!usrStr) { router.push('/login'); return; }
     const usr = JSON.parse(usrStr);
+    if (usr.role !== 'student') { router.push('/dashboard/admin'); return; }
     setUser(usr);
-    fetch(`/api/registrations?student_id=${usr.id}`)
-      .then(r => r.json())
-      .then(d => { if (d.success) setRegistrations(d.registrations); });
+    fetchRegistrations(usr.id);
   }, [router]);
 
-  if (!user) return <div className="min-h-screen bg-surface-container-lowest flex items-center justify-center"><div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>;
+  const fetchRegistrations = (studentId) => {
+    fetch(`/api/registrations?student_id=${studentId}`)
+      .then(r => r.json())
+      .then(d => { if (d.success) setRegistrations(d.registrations); })
+      .finally(() => setLoading(false));
+  };
+
+  const handleCancel = async (reg) => {
+    if (!confirm(`Cancel registration for "${reg.event_name}"?`)) return;
+    setCancelling(reg.id);
+    try {
+      const res = await fetch(`/api/registrations?id=${reg.id}&event_id=${reg.event_id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Registration cancelled.');
+        setRegistrations(prev => prev.filter(r => r.id !== reg.id));
+      } else {
+        toast.error(data.error || 'Failed to cancel');
+      }
+    } catch {
+      toast.error('Network error.');
+    } finally {
+      setCancelling(null);
+    }
+  };
+
+  if (!user || loading) return (
+    <div className="min-h-screen bg-surface-container-lowest flex items-center justify-center">
+      <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+
+  const upcoming = registrations.filter(r => r.status !== 'completed');
+  const completed = registrations.filter(r => r.status === 'completed');
 
   return (
-    <div className="bg-surface-container-lowest text-on-surface min-h-screen font-body">
+    <div className="bg-surface-container-lowest text-on-surface min-h-screen font-body overflow-x-hidden">
       <SideNav role="student" />
-      <main className="ml-20 pt-10 pb-12 px-8 max-w-7xl mx-auto">
+      <main className="ml-24 pt-12 pb-24 px-8 max-w-7xl mx-auto relative">
+        <div className="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/5 blur-[150px] rounded-full pointer-events-none" />
 
-        {/* Athlete Hero Card */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12 mt-4">
-          <div className="lg:col-span-8 bg-surface-container-high rounded-xl overflow-hidden relative border border-outline-variant/10" style={{ boxShadow: '0 0 30px rgba(186,255,57,0.15)' }}>
-            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/5 to-secondary/5 pointer-events-none" />
+        {/* Dynamic Athlete Header */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12 relative z-10">
+          <div className="lg:col-span-8 bg-surface-container-high/60 backdrop-blur-3xl rounded-[2.5rem] overflow-hidden border border-outline-variant/10 shadow-2xl relative">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-secondary" />
+            
             <div className="flex flex-col md:flex-row h-full">
               <div className="md:w-1/3 relative h-64 md:h-auto">
-                <img src="https://images.unsplash.com/photo-1599058917212-d750089bc07e?q=80&w=800" alt="Profile" className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-surface-container-high md:bg-gradient-to-r md:from-transparent md:to-surface-container-high" />
-              </div>
-              <div className="md:w-2/3 p-8 flex flex-col justify-center relative z-10">
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 border border-primary/20 backdrop-blur-md rounded-full w-fit mb-4">
-                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                  <span className="text-primary font-label text-[10px] uppercase tracking-[0.2em] font-bold">Active Roster</span>
+                <img src="https://images.unsplash.com/photo-1599058917212-d750089bc07e?q=80&w=800" alt="Profile" className="w-full h-full object-cover grayscale opacity-80" />
+                <div className="absolute inset-0 bg-gradient-to-t from-surface-container-high md:bg-gradient-to-r md:from-transparent md:to-surface-container-high/60" />
+                <div className="absolute bottom-6 left-6">
+                   <div className="bg-primary text-on-primary px-4 py-2 rounded-xl border border-primary/30 shadow-2xl">
+                      <p className="text-[9px] font-headline font-black italic uppercase tracking-widest leading-none mb-1">Victor Records</p>
+                      <p className="text-3xl font-headline font-black italic tracking-tighter leading-none">{user.wins || 0} W</p>
+                   </div>
                 </div>
-                <h1 className="text-4xl md:text-5xl font-headline font-black italic tracking-tighter uppercase mb-2">{user.name || 'Athlete'}</h1>
-                <p className="text-secondary font-headline font-bold uppercase tracking-widest text-sm mb-6">{user.email}</p>
-                <div className="grid grid-cols-3 gap-4">
-                  {[['Status', 'CLEARED', 'text-primary'], ['Registered', registrations.length, 'text-on-surface'], ['Tier', 'VARSITY', 'text-secondary']].map(([label, val, cls]) => (
-                    <div key={label} className="bg-surface-container-lowest p-4 rounded-lg border border-outline-variant/20 text-center">
-                      <span className="block text-on-surface-variant font-label text-[10px] uppercase tracking-widest mb-1">{label}</span>
-                      <span className={`font-headline font-bold ${cls}`}>{val}</span>
+              </div>
+
+              <div className="md:w-2/3 p-10 flex flex-col justify-center relative">
+                <div className="flex justify-between items-start mb-4">
+                   <div>
+                      <h1 className="text-5xl md:text-6xl font-headline font-black italic tracking-tighter uppercase leading-none mb-2">{user.name || 'Athlete'}</h1>
+                      <p className="text-primary font-headline font-black italic tracking-[0.3em] uppercase text-xs">{user.roll_number || 'IDENT-PENDING'}</p>
+                   </div>
+                   <div className="text-right">
+                      <p className="text-[10px] font-headline font-black italic uppercase tracking-widest text-on-surface-variant mb-1">Rank Status</p>
+                      <p className="text-secondary font-headline font-black italic uppercase tracking-widest text-sm">ELITE S-LEVEL</p>
+                   </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-8 border-y border-outline-variant/5 py-4">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm text-on-surface-variant">school</span>
+                    <p className="text-on-surface-variant font-headline font-bold uppercase tracking-widest text-[10px]">{user.branch}</p>
+                  </div>
+                  <div className="w-1 h-1 rounded-full bg-outline-variant/30" />
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm text-on-surface-variant">calendar_today</span>
+                    <p className="text-on-surface-variant font-headline font-bold uppercase tracking-widest text-[10px]">Year {user.year} • Sec {user.section || 'N/A'}</p>
+                  </div>
+                  <div className="w-1 h-1 rounded-full bg-outline-variant/30" />
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm text-on-surface-variant">phone</span>
+                    <p className="text-on-surface-variant font-headline font-bold uppercase tracking-widest text-[10px]">{user.phone || 'NO-CONTACT'}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-6">
+                  {[
+                    ['Total Events', registrations.length, 'text-primary'],
+                    ['Upcoming Events', upcoming.length, 'text-secondary'],
+                    ['Verified Wins', user.wins || 0, 'text-yellow-500'],
+                  ].map(([label, val, cls]) => (
+                    <div key={label} className="bg-surface-container/60 p-4 rounded-2xl border border-outline-variant/10 hover:border-primary/20 transition-all group">
+                      <span className="block text-on-surface-variant font-headline font-black italic text-[8px] uppercase tracking-widest mb-1 opacity-60">{label}</span>
+                      <span className={`font-headline font-black text-3xl italic tracking-tighter ${cls}`}>{val}</span>
                     </div>
                   ))}
                 </div>
@@ -54,112 +132,109 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          {/* Performance Panel */}
-          <div className="lg:col-span-4 bg-surface-container-high rounded-xl p-8 border border-outline-variant/10 flex flex-col gap-6">
-            <div className="flex justify-between items-center">
-              <h3 className="font-headline uppercase tracking-tight font-bold italic text-xl">Performance</h3>
-              <span className="material-symbols-outlined text-primary">analytics</span>
-            </div>
-            {[['Conditioning', 94, 'text-primary', 'bg-primary'], ['Event Readiness', 88, 'text-secondary', 'bg-secondary'], ['Velocity Score', 78, 'text-tertiary', 'bg-tertiary']].map(([label, pct, tcls, bcls]) => (
-              <div key={label}>
-                <div className="flex justify-between text-xs font-label uppercase tracking-widest mb-2">
-                  <span>{label}</span><span className={tcls}>{pct}%</span>
-                </div>
-                <div className="h-1.5 w-full bg-surface-container rounded-full overflow-hidden">
-                  <div className={`h-full ${bcls}`} style={{ width: `${pct}%` }} />
-                </div>
-              </div>
-            ))}
+          {/* Quick Tactical Links */}
+          <div className="lg:col-span-4 flex flex-col gap-6">
+            <Link href="/leaderboard">
+               <div className="bg-surface-container-high/60 backdrop-blur-3xl p-6 rounded-[2rem] border border-outline-variant/10 hover:border-yellow-500/40 transition-all cursor-pointer group shadow-xl">
+                  <div className="flex items-center justify-between mb-4">
+                     <span className="material-symbols-outlined text-yellow-500 text-3xl group-hover:scale-110 transition-transform">emoji_events</span>
+                     <span className="text-[10px] font-headline font-black italic uppercase tracking-widest text-on-surface-variant">CDGI Overall Rank</span>
+                  </div>
+                  <h3 className="font-headline font-black italic text-xl uppercase tracking-tighter mb-1">Leaderboard</h3>
+                  <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">Compare metrics across the arena</p>
+               </div>
+            </Link>
+            
+            <Link href="/calendar">
+               <div className="bg-surface-container-high/60 backdrop-blur-3xl p-6 rounded-[2rem] border border-outline-variant/10 hover:border-secondary/40 transition-all cursor-pointer group shadow-xl">
+                  <div className="flex items-center justify-between mb-4">
+                     <span className="material-symbols-outlined text-secondary text-3xl group-hover:rotate-12 transition-transform">calendar_month</span>
+                     <span className="text-[10px] font-headline font-black italic uppercase tracking-widest text-on-surface-variant">Schedule Sync</span>
+                  </div>
+                  <h3 className="font-headline font-black italic text-xl uppercase tracking-tighter mb-1">Event Calendar</h3>
+                  <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">Official sports scheduling</p>
+               </div>
+            </Link>
+
+            <Link href="/events" className="flex-1">
+               <div className="bg-primary p-6 rounded-[2.5rem] hover:scale-[1.02] transition-all cursor-pointer shadow-[0_15px_40px_rgba(184,253,55,0.3)] flex flex-col justify-center items-center text-center">
+                  <span className="material-symbols-outlined text-on-primary text-4xl mb-2">bolt</span>
+                  <p className="font-headline font-black italic text-on-primary uppercase tracking-widest text-lg">NEW REGISTRATION</p>
+                  <p className="text-on-primary/60 text-[10px] font-bold uppercase tracking-widest mt-1">Register for current events</p>
+               </div>
+            </Link>
           </div>
         </div>
 
-        {/* Metric Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <div className="bg-surface-container-low rounded-xl p-6 border border-outline-variant/10">
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h4 className="text-zinc-500 text-[10px] font-headline font-bold uppercase tracking-widest">Active Velocity</h4>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-headline font-bold italic text-primary">78.2%</span>
-                  <span className="text-primary text-xs font-bold">+12%</span>
-                </div>
-              </div>
-              <span className="material-symbols-outlined text-primary text-3xl">speed</span>
-            </div>
-            <div className="h-2 w-full bg-surface-container-highest rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-secondary to-primary w-[78%]" />
-            </div>
-          </div>
-          <div className="bg-surface-container-low rounded-xl p-6 border border-outline-variant/10">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h4 className="text-zinc-500 text-[10px] font-headline font-bold uppercase tracking-widest">Upcoming Session</h4>
-                <h3 className="text-xl font-headline font-bold italic text-on-surface">Explosive Power Drills</h3>
-              </div>
-              <span className="material-symbols-outlined text-secondary text-3xl">timer</span>
-            </div>
-            <button className="w-full bg-secondary/10 hover:bg-secondary/20 text-secondary py-2 rounded font-headline font-bold text-[10px] uppercase tracking-widest transition-colors mt-4">Check-in Early</button>
-          </div>
-          <div className="bg-surface-container-low rounded-xl p-6 border border-outline-variant/10">
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h4 className="text-zinc-500 text-[10px] font-headline font-bold uppercase tracking-widest">Recovery Level</h4>
-                <span className="text-4xl font-headline font-bold italic">Optimal</span>
-              </div>
-              <span className="material-symbols-outlined text-tertiary text-3xl">battery_charging_full</span>
-            </div>
-            <div className="flex gap-1 h-5">
-              {[1,2,3,4].map(i => <div key={i} className="flex-1 bg-tertiary rounded-sm" />)}
-              <div className="flex-1 bg-tertiary/20 rounded-sm" />
-            </div>
-          </div>
-        </div>
+        {/* Mission Inventory */}
+        <div className="mb-12 relative z-10">
+           <div className="flex justify-between items-end mb-8">
+              <h2 className="font-headline font-black italic text-3xl uppercase tracking-tighter flex items-center gap-4">
+                 REGISTERED <span className="text-primary italic">MISSIONS</span>
+                 <span className="bg-surface-container text-xs font-bold px-3 py-1 rounded-full text-on-surface-variant">{registrations.length}</span>
+              </h2>
+           </div>
 
-        {/* Registered Events */}
-        <h2 className="text-2xl font-headline font-bold italic tracking-tight mb-8 flex items-center gap-3">
-          <span className="w-8 h-[2px] bg-primary" />
-          Registered Performance Tracks
-        </h2>
-        {registrations.length === 0 ? (
-          <div className="bg-surface-container-high rounded-xl p-12 text-center border border-outline-variant/10">
-            <span className="material-symbols-outlined text-5xl text-on-surface-variant mb-4 block">event_busy</span>
-            <p className="text-on-surface-variant font-headline italic">No events registered yet.</p>
-            <button onClick={() => router.push('/events')} className="mt-6 bg-primary text-on-primary font-headline font-bold italic px-8 py-3 rounded-lg hover:scale-105 transition-transform">
-              Browse Events
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {registrations.map((reg) => (
-              <div key={reg.id} className="bg-surface-container-high rounded-xl overflow-hidden group border border-outline-variant/10 hover:border-primary/30 transition-colors" style={{ transform: 'perspective(1000px)', transition: 'transform 0.5s ease' }}>
-                <div className="relative h-40 overflow-hidden">
-                  <img src={reg.image_url || 'https://images.unsplash.com/photo-1599058917212-d750089bc07e?q=80&w=800'} alt={reg.event_name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1599058917212-d750089bc07e?q=80&w=800' }} />
-                  <div className="absolute top-4 left-4">
-                    <span className={`text-[9px] font-headline font-bold px-2 py-1 uppercase tracking-tighter ${reg.status === 'approved' ? 'bg-primary text-on-primary' : 'bg-surface-container-highest text-on-surface-variant'}`}>
-                      {reg.status || 'Pending'}
-                    </span>
-                  </div>
-                </div>
-                <div className="p-5">
-                  <p className="text-[10px] text-primary font-headline font-bold uppercase mb-1">{reg.sport}</p>
-                  <h3 className="font-headline font-bold text-lg mb-4 line-clamp-1">{reg.event_name || reg.name}</h3>
-                  <div className="flex justify-between items-center">
-                    <div className="text-[10px] text-zinc-500">
-                      <p className="uppercase font-bold tracking-widest">Date</p>
-                      <p className="text-on-surface">{reg.date ? new Date(reg.date).toLocaleDateString() : '—'}</p>
-                    </div>
-                    <button
-                      onClick={() => router.push(`/events/${reg.event_id}`)}
-                      className="bg-surface-container-highest text-[10px] font-headline font-bold uppercase tracking-widest px-4 py-2 hover:bg-primary hover:text-on-primary transition-all"
-                    >
-                      View
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+           {loading ? (
+             <div className="py-20 flex justify-center"><div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>
+           ) : registrations.length === 0 ? (
+             <div className="bg-surface-container/30 p-24 rounded-[3rem] border-2 border-dashed border-outline-variant/20 text-center">
+                <span className="material-symbols-outlined text-7xl text-on-surface-variant/20 mb-6">explore_off</span>
+                <p className="text-on-surface-variant font-headline italic font-bold text-2xl uppercase opacity-40">No active directives found.</p>
+                <Link href="/events">
+                   <button className="mt-8 px-10 py-4 bg-primary text-on-primary font-headline font-black italic rounded-2xl hover:scale-105 transition-all shadow-xl">EXPLORE ARENA</button>
+                </Link>
+             </div>
+           ) : (
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {registrations.map((reg) => {
+                  const statusCfg = STATUS_CONFIG[reg.status] || STATUS_CONFIG.upcoming;
+                  const isCancelling = cancelling === reg.id;
+                  return (
+                    <article key={reg.id} className="bg-surface-container-high/60 backdrop-blur-2xl rounded-[2rem] overflow-hidden border border-outline-variant/10 hover:border-primary/30 transition-all flex flex-col shadow-2xl group">
+                       <div className="relative h-44 overflow-hidden">
+                          <img 
+                            src={reg.image_url || 'https://images.unsplash.com/photo-1599058917212-d750089bc07e?q=80&w=800'} 
+                            alt={reg.event_name}
+                            className="w-full h-full object-cover grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-surface-container-high transition-opacity group-hover:opacity-60" />
+                          <div className="absolute top-4 left-4">
+                             <span className={`px-4 py-1.5 rounded-full text-[10px] font-headline font-black italic uppercase tracking-widest border border-white/5 shadow-xl ${statusCfg.color}`}>
+                                {statusCfg.label}
+                             </span>
+                          </div>
+                       </div>
+                       
+                       <div className="p-8 flex flex-col flex-1">
+                          <div className="flex justify-between items-start mb-4">
+                             <span className="text-secondary font-headline font-black italic text-[10px] uppercase tracking-[0.3em]">{reg.sport} Division</span>
+                             <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">{new Date(reg.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+                          </div>
+                          
+                          <h3 className="font-headline font-black italic text-2xl uppercase tracking-tighter mb-4 leading-none group-hover:text-primary transition-colors">{reg.event_name}</h3>
+                          
+                          <div className="mt-auto pt-6 border-t border-outline-variant/5 flex gap-3">
+                             <Link href={`/events/${reg.event_id}`} className="flex-1">
+                                <button className="w-full py-3.5 bg-surface-container-highest text-on-surface font-headline font-black italic uppercase text-[10px] tracking-widest rounded-xl hover:border-primary border border-outline-variant/10 transition-all">ANALYZE</button>
+                             </Link>
+                             {reg.status !== 'completed' && reg.status !== 'ongoing' && (
+                               <button 
+                                 onClick={() => handleCancel(reg)}
+                                 disabled={isCancelling}
+                                 className="w-12 h-12 bg-surface-container-low text-error/40 hover:text-error hover:bg-error/10 border border-outline-variant/10 rounded-xl flex items-center justify-center transition-all disabled:opacity-50"
+                               >
+                                 <span className="material-symbols-outlined text-xl">{isCancelling ? 'progress_activity' : 'scan_delete'}</span>
+                               </button>
+                             )}
+                          </div>
+                       </div>
+                    </article>
+                  );
+                })}
+             </div>
+           )}
+        </div>
       </main>
     </div>
   );

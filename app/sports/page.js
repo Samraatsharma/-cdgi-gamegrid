@@ -22,7 +22,7 @@ export default function SportsPage() {
         <div className="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/40 to-transparent" />
         <div className="relative px-8 md:px-16 pb-16 max-w-4xl">
           <h1 className="font-headline font-black italic text-6xl md:text-8xl tracking-tighter mb-4" style={{ textShadow: '0 0 10px rgba(186,255,57,0.4)' }}>
-            CDGI GameGrid <span className="text-primary">Hub</span>
+            CDGI Sports Sphere <span className="text-primary">Hub</span>
           </h1>
           <p className="text-on-surface-variant text-lg max-w-2xl">
             Select a sport to view upcoming event fixtures, tournament rules, and registration deadlines.

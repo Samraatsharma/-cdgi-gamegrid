@@ -2,7 +2,7 @@ import './globals.css';
 import { Toaster } from 'react-hot-toast';
 
 export const metadata = {
-  title: 'CDGI GameGrid',
+  title: 'CDGI Sports Sphere',
   description: 'Elite Performance Management System',
 };
 
