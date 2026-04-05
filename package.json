@@ -2,9 +2,13 @@
   "name": "sports-sphere",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run build:sqlite && next build",
+    "build:sqlite": "npm rebuild sqlite3 --build-from-source",
     "start": "next start",
     "lint": "eslint"
   },
