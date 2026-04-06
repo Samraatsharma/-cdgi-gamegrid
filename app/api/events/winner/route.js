@@ -34,7 +34,7 @@ export async function POST(req) {
     }
 
     // 4. Update event status to completed if it wasn't already
-    await db.run('UPDATE events SET status = "completed" WHERE id = ?', [event_id]);
+    await db.run("UPDATE events SET status = 'completed' WHERE id = ?", [event_id]);
 
     return NextResponse.json({ success: true, message: 'Winner declared and status updated.' });
   } catch (error) {

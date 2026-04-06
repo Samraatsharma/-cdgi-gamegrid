@@ -3,7 +3,8 @@ import { openDB } from '../../../../database/db';
 
 export async function POST(req) {
   try {
-    const { name, email, password, branch, year, roll_number, section, phone } = await req.json();
+    const body = await req.json();
+    const { name, email, password, branch, year, roll_number, section, phone } = body;
 
     if (!name || !email || !password || !branch || !year || !roll_number || !phone) {
       return NextResponse.json({ error: 'All primary fields are required' }, { status: 400 });
@@ -27,9 +28,10 @@ export async function POST(req) {
     }
 
     // Insert new user with full profile
+    // Note: section is optional, handled by the database schema (NULLable)
     const result = await db.run(
       'INSERT INTO students (name, email, password, branch, year, roll_number, section, phone, wins) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [name, email, password, branch, parseInt(year), roll_number, section, phone, 0]
+      [name, email, password, branch, parseInt(year), roll_number, section || null, phone, 0]
     );
 
     return NextResponse.json({ 
@@ -41,13 +43,20 @@ export async function POST(req) {
         branch, 
         year, 
         roll_number, 
-        section, 
+        section: section || null, 
         phone, 
         role: 'student' 
       } 
     });
   } catch (error) {
     console.error('Registration Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    // Print more detailed error info for the server logs
+    if (error.code) console.error('Error Code:', error.code);
+    if (error.detail) console.error('Error Detail:', error.detail);
+    
+    return NextResponse.json({ 
+      error: 'Internal Server Error',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    }, { status: 500 });
   }
 }

@@ -5,111 +5,182 @@ dotenv.config({ path: '.env.local' });
 dotenv.config();
 
 async function setup() {
-  console.log('🔧 Upgrading CDGI Sports Sphere SQLite Database...');
+  const isPostgres = !!(process.env.POSTGRES_URL || process.env.DATABASE_URL);
+  console.log(`🔧 Upgrading CDGI Sports Sphere ${isPostgres ? 'PostgreSQL' : 'SQLite'} Database...`);
   
   const db = await openDB();
 
-  // Drop existing tables for a clean one-time schema reset
-  await db.exec(`
-    DROP TABLE IF EXISTS results;
-    DROP TABLE IF EXISTS logistics;
-    DROP TABLE IF EXISTS attendance;
-    DROP TABLE IF EXISTS team;
-    DROP TABLE IF EXISTS trials;
-    DROP TABLE IF EXISTS registrations;
-    DROP TABLE IF EXISTS events;
-    DROP TABLE IF EXISTS admin;
-    DROP TABLE IF EXISTS students;
-    DROP TABLE IF EXISTS notifications;
-  `);
+  // Drop existing tables
+  const tables = [
+    'results', 'logistics', 'attendance', 'team', 'trials', 
+    'registrations', 'events', 'admin', 'students', 'notifications'
+  ];
+
+  for (const table of tables) {
+    await db.exec(`DROP TABLE IF EXISTS ${table}${isPostgres ? ' CASCADE' : ''}`);
+  }
 
   console.log('✅ Cleared old tables.');
 
-  // Create tables with expanded fields
-  await db.exec(`
-    CREATE TABLE students (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      email TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
-      roll_number TEXT,
-      branch TEXT NOT NULL,
-      year INTEGER NOT NULL,
-      section TEXT,
-      phone TEXT,
-      wins INTEGER DEFAULT 0
-    );
+  // Create tables with dialect-specific syntax
+  if (isPostgres) {
+    await db.exec(`
+      CREATE TABLE students (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        roll_number TEXT,
+        branch TEXT NOT NULL,
+        year INTEGER NOT NULL,
+        section TEXT,
+        phone TEXT,
+        wins INTEGER DEFAULT 0
+      );
 
-    CREATE TABLE admin (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL
-    );
+      CREATE TABLE admin (
+        id SERIAL PRIMARY KEY,
+        username TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL
+      );
 
-    CREATE TABLE events (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      sport TEXT NOT NULL,
-      date TEXT NOT NULL,
-      eligibility TEXT NOT NULL,
-      allowed_branches TEXT DEFAULT 'All', -- Comma separated: CSE,IT,ME
-      allowed_years TEXT DEFAULT 'All',     -- Comma separated: 1,2,3,4
-      status TEXT DEFAULT 'registration_open',
-      image_url TEXT,
-      max_participants INTEGER DEFAULT 50,
-      registered_count INTEGER DEFAULT 0,
-      description TEXT DEFAULT ''
-    );
+      CREATE TABLE events (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        sport TEXT NOT NULL,
+        date TEXT NOT NULL,
+        eligibility TEXT NOT NULL,
+        allowed_branches TEXT DEFAULT 'All',
+        allowed_years TEXT DEFAULT 'All',
+        status TEXT DEFAULT 'registration_open',
+        image_url TEXT,
+        max_participants INTEGER DEFAULT 50,
+        registered_count INTEGER DEFAULT 0,
+        description TEXT DEFAULT ''
+      );
 
-    CREATE TABLE registrations (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      student_id INTEGER NOT NULL,
-      event_id INTEGER NOT NULL,
-      registered_at TEXT DEFAULT (datetime('now')),
-      UNIQUE(student_id, event_id),
-      FOREIGN KEY(student_id) REFERENCES students(id) ON DELETE CASCADE,
-      FOREIGN KEY(event_id) REFERENCES events(id) ON DELETE CASCADE
-    );
+      CREATE TABLE registrations (
+        id SERIAL PRIMARY KEY,
+        student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+        event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+        registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(student_id, event_id)
+      );
 
-    CREATE TABLE results (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      event_id INTEGER NOT NULL,
-      winner_student_id INTEGER, -- For individual winners
-      winner_text TEXT,         -- For team/department names
-      details TEXT,
-      UNIQUE(event_id),
-      FOREIGN KEY(event_id) REFERENCES events(id) ON DELETE CASCADE,
-      FOREIGN KEY(winner_student_id) REFERENCES students(id) ON DELETE SET NULL
-    );
+      CREATE TABLE results (
+        id SERIAL PRIMARY KEY,
+        event_id INTEGER NOT NULL UNIQUE REFERENCES events(id) ON DELETE CASCADE,
+        winner_student_id INTEGER REFERENCES students(id) ON DELETE SET NULL,
+        winner_text TEXT,
+        details TEXT
+      );
 
-    CREATE TABLE notifications (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER, -- NULL for global notifications
-      title TEXT NOT NULL,
-      message TEXT NOT NULL,
-      type TEXT DEFAULT 'info', -- info, success, warning, danger
-      is_read INTEGER DEFAULT 0,
-      created_at TEXT DEFAULT (datetime('now'))
-    );
+      CREATE TABLE notifications (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER,
+        title TEXT NOT NULL,
+        message TEXT NOT NULL,
+        type TEXT DEFAULT 'info',
+        is_read INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
 
-    CREATE TABLE logistics (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      event_id INTEGER NOT NULL,
-      total_students INTEGER DEFAULT 0,
-      ground TEXT,
-      rooms INTEGER DEFAULT 0,
-      food_required INTEGER DEFAULT 0,
-      UNIQUE(event_id),
-      FOREIGN KEY(event_id) REFERENCES events(id) ON DELETE CASCADE
-    );
-  `);
+      CREATE TABLE logistics (
+        id SERIAL PRIMARY KEY,
+        event_id INTEGER NOT NULL UNIQUE REFERENCES events(id) ON DELETE CASCADE,
+        total_students INTEGER DEFAULT 0,
+        ground TEXT,
+        rooms INTEGER DEFAULT 0,
+        food_required INTEGER DEFAULT 0
+      );
+    `);
+  } else {
+    // SQLite syntax
+    await db.exec(`
+      CREATE TABLE students (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        roll_number TEXT,
+        branch TEXT NOT NULL,
+        year INTEGER NOT NULL,
+        section TEXT,
+        phone TEXT,
+        wins INTEGER DEFAULT 0
+      );
+
+      CREATE TABLE admin (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL
+      );
+
+      CREATE TABLE events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        sport TEXT NOT NULL,
+        date TEXT NOT NULL,
+        eligibility TEXT NOT NULL,
+        allowed_branches TEXT DEFAULT 'All',
+        allowed_years TEXT DEFAULT 'All',
+        status TEXT DEFAULT 'registration_open',
+        image_url TEXT,
+        max_participants INTEGER DEFAULT 50,
+        registered_count INTEGER DEFAULT 0,
+        description TEXT DEFAULT ''
+      );
+
+      CREATE TABLE registrations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        student_id INTEGER NOT NULL,
+        event_id INTEGER NOT NULL,
+        registered_at TEXT DEFAULT (datetime('now')),
+        UNIQUE(student_id, event_id),
+        FOREIGN KEY(student_id) REFERENCES students(id) ON DELETE CASCADE,
+        FOREIGN KEY(event_id) REFERENCES events(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE results (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_id INTEGER NOT NULL,
+        winner_student_id INTEGER,
+        winner_text TEXT,
+        details TEXT,
+        UNIQUE(event_id),
+        FOREIGN KEY(event_id) REFERENCES events(id) ON DELETE CASCADE,
+        FOREIGN KEY(winner_student_id) REFERENCES students(id) ON DELETE SET NULL
+      );
+
+      CREATE TABLE notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        title TEXT NOT NULL,
+        message TEXT NOT NULL,
+        type TEXT DEFAULT 'info',
+        is_read INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+
+      CREATE TABLE logistics (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_id INTEGER NOT NULL,
+        total_students INTEGER DEFAULT 0,
+        ground TEXT,
+        rooms INTEGER DEFAULT 0,
+        food_required INTEGER DEFAULT 0,
+        UNIQUE(event_id),
+        FOREIGN KEY(event_id) REFERENCES events(id) ON DELETE CASCADE
+      );
+    `);
+  }
 
   console.log('✅ Created advanced schema. Inserting seed data...');
 
   // 1. Admin
   await db.run('INSERT INTO admin (username, password) VALUES (?, ?)', ['admin@gamegrid.com', 'admin123']);
 
-  // 2. Students with extended profiles
+  // 2. Students
   const students = [
     { name: 'Aarav Patel',   email: 'aarav@cdgi.edu',   pass: 'pass123', roll: 'CDGI-21-001', branch: 'CSE', year: 3, section: 'A', phone: '9876543210', wins: 2 },
     { name: 'Diya Sharma',   email: 'diya@cdgi.edu',    pass: 'pass123', roll: 'CDGI-22-042', branch: 'IT',  year: 2, section: 'B', phone: '9876543211', wins: 0 },
@@ -124,7 +195,7 @@ async function setup() {
     );
   }
 
-  // 3. Events with Eligibility
+  // 3. Events
   const events = [
     {
       name: 'Annual Inter-College Cricket Cup', sport: 'Cricket', date: '2026-05-10',
@@ -160,12 +231,17 @@ async function setup() {
     await db.run('INSERT INTO logistics (event_id, ground) VALUES (?, ?)', [res.lastID, e.sport + ' Court 1']);
   }
 
-  // Seed some registrations
+  // 4. Seed some registrations
+  // Using explicit IDs (1-5 for students, 1-4 for events)
   await db.run('INSERT INTO registrations (student_id, event_id) VALUES (1, 1), (2, 1), (5, 1)');
   await db.run('INSERT INTO registrations (student_id, event_id) VALUES (1, 2), (5, 2)');
   
-  // Update counts
-  await db.run(`UPDATE events SET registered_count = (SELECT COUNT(*) FROM registrations WHERE event_id = events.id)`);
+  // 5. Update counts
+  if (isPostgres) {
+    await db.run(`UPDATE events SET registered_count = (SELECT COUNT(*) FROM registrations WHERE event_id = events.id)`);
+  } else {
+    await db.run(`UPDATE events SET registered_count = (SELECT COUNT(*) FROM registrations WHERE event_id = events.id)`);
+  }
 
   console.log('🚀 Advanced Database Ready.');
   process.exit(0);

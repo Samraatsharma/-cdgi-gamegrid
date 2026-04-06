@@ -25,13 +25,13 @@ export async function POST(req) {
       }
       return NextResponse.json({ error: 'Invalid admin credentials' }, { status: 401 });
     } else {
-      // 1. Check if the email even exists first
+      // 1. Check if the email exists
       const emailExists = await db.get('SELECT id FROM students WHERE email = ?', [email]);
       if (!emailExists) {
         return NextResponse.json({ error: 'ACCOUNT_NOT_FOUND' }, { status: 404 });
       }
 
-      // 2. If it exists, verify the password
+      // 2. Verify password
       const query = 'SELECT id, name, email, roll_number, branch, year, section, phone, wins FROM students WHERE email = ? AND password = ?';
       const studentData = await db.get(query, [email, password]);
 
