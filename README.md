@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<div align="center">
+  <img src="https://images.unsplash.com/photo-1541252260730-0412e8e2108e?q=80&w=1974&auto=format&fit=crop" width="100%" height="300px" style="object-fit: cover; border-radius: 24px;" alt="GameGrid Header" />
+  
+  # 🕹️ GAMEGRID: ELITE EVENT ENGINE
+  **High-Performance Architecture for Professional Sporting Tiers**
 
-## Getting Started
+  [![Next.js](https://img.shields.io/badge/Next.js-16.2-blueviolet?style=for-the-badge&logo=nextdotjs)](https://nextjs.org/)
+  [![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-38B2AC?style=for-the-badge&logo=tailwindcss)](https://tailwindcss.com/)
+  [![database](https://img.shields.io/badge/Database-SQLite%20%26%20Postgres-003B57?style=for-the-badge&logo=sqlite)](https://www.sqlite.org/)
+  [![Framer Motion](https://img.shields.io/badge/Motion-Fluid-pink?style=for-the-badge&logo=framer)](https://www.framer.com/motion/)
 
-First, run the development server:
+  ---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+  ### 💠 THE MANIFESTO
+  **GameGrid** (formerly Sports Sphere) is a sophisticated, full-stack event management ecosystem. Designed for high-stakes sports coordination, it combines an aggressive **Celestial UI** with a robust, multi-database backend to provide a seamless experience for architects of professional athletic tiers.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+  [Live Portal](https://cdgi-gamegrid.vercel.app/) • [View Documentation](README.md) • [System Status](https://img.shields.io/badge/Status-Operational-success)
+</div>
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## 🚀 CORE PROTOCOLS
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 🏟️ **Professional Event Architecture**
+A specialized environment for creating, managing, and broadcasting sporting events. Featuring a "No-Line" design philosophy that emphasizes content over containers.
 
-## Learn More
+### 💾 **Hybrid Data Volatility**
+GameGrid features ultimate flexibility with a **Dual-Database Layer**:
+- **SQLite Engine**: Rebuilt from source for lightweight, high-speed local development and branch-based scaling.
+- **Postgres Protocol**: Industry-standard reliability for production-grade event persistence.
 
-To learn more about Next.js, take a look at the following resources:
+### ⚡ **Kinetic Interaction (Framer Motion)**
+Every interaction is calculated. The UI utilizes **Framer Motion 12** to provide high-refresh-rate feedback, ensuring the digital interface feels as dynamic as the sports it manages.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 🎨 **Tailwind v4 Branding**
+Leveraging the latest **Tailwind v4** engine for a performance-first CSS layer, featuring deep shadows, glassmorphism card components, and thematic gradients.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## 🛠️ THE STACK
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Framework**: [Next.js 16 (App Router)](https://nextjs.org/)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
+- **Animation**: [Framer Motion 12](https://www.framer.com/motion/)
+- **Primary Data**: [SQLite / node-sqlite3](https://github.com/TryGhost/node-sqlite3)
+- **Production Data**: [PostgreSQL (pg)](https://node-postgres.com/)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## 🏁 ARCHITECT SETUP
+
+1. **Clone the Metadata**
+   ```bash
+   git clone https://github.com/Samraatsharma/-cdgi-gamegrid.git
+   cd gamegrid
+   ```
+
+2. **Initialize Node Protocol**
+   ```bash
+   npm install
+   ```
+
+3. **Rebuild Native SQLite**
+   Since SQLite3 is built from source for production reliability:
+   ```bash
+   npm run build:sqlite
+   ```
+
+4. **Launch the Engine**
+   ```bash
+   npm run dev
+   ```
+
+---
+
+<div align="center">
+  <sub>Built with precision for the elite athlete in every architect. © 2024 GameGrid Galactic.</sub>
+</div>
