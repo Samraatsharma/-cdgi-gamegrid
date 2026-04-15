@@ -9,9 +9,9 @@ export async function GET(req) {
   try {
     const db = await openDB();
     let query = `
-      SELECT r.id, r.student_id, r.event_id, r.registered_at,
+      SELECT r.id, r.student_id, r.event_id, r.registered_at, r.payment_status, r.payment_screenshot_url,
         e.name as event_name, e.sport, e.status, e.date, e.image_url, e.eligibility,
-        e.max_participants, e.registered_count
+        e.max_participants, e.registered_count, e.entry_fee, e.coordinator_name, e.coordinator_contact
       FROM registrations r
       JOIN events e ON r.event_id = e.id
     `;
@@ -36,7 +36,7 @@ export async function GET(req) {
 
 export async function POST(req) {
   try {
-    const { student_id, event_id } = await req.json();
+    const { student_id, event_id, payment_screenshot_url } = await req.json();
 
     if (!student_id || !event_id) {
       return NextResponse.json({ error: 'Student ID and Event ID are required' }, { status: 400 });
@@ -68,10 +68,18 @@ export async function POST(req) {
       return NextResponse.json({ error: `This event is full (${event.max_participants}/${event.max_participants} slots taken).` }, { status: 400 });
     }
 
+    let payment_status = 'not_required';
+    if (event.entry_fee > 0) {
+      if (!payment_screenshot_url) {
+        return NextResponse.json({ error: 'Payment screenshot is required as this event has an entry fee.' }, { status: 400 });
+      }
+      payment_status = 'pending';
+    }
+
     // 4. Register student
     await db.run(
-      'INSERT INTO registrations (student_id, event_id) VALUES (?, ?)',
-      [student_id, event_id]
+      'INSERT INTO registrations (student_id, event_id, payment_screenshot_url, payment_status) VALUES (?, ?, ?, ?)',
+      [student_id, event_id, payment_screenshot_url || null, payment_status]
     );
 
     // [DELETED] Trials table no longer exists in current schema
@@ -140,6 +148,23 @@ export async function DELETE(req) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Cancel Registration Error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+export async function PATCH(req) {
+  try {
+    const { id, payment_status } = await req.json();
+    if (!id || !payment_status) {
+      return NextResponse.json({ error: 'Missing ID or Status' }, { status: 400 });
+    }
+
+    const db = await openDB();
+    await db.run('UPDATE registrations SET payment_status = ? WHERE id = ?', [payment_status, id]);
+    
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Update Payment Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

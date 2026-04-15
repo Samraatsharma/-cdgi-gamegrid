@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 const adminLinks = [
   { href: '/dashboard/admin', icon: 'grid_view', label: 'Dashboard' },
@@ -9,6 +10,7 @@ const adminLinks = [
   { href: '/dashboard/admin/team', icon: 'group', label: 'Teams' },
   { href: '/dashboard/admin/logistics', icon: 'inventory_2', label: 'Logistics' },
   { href: '/dashboard/admin/results', icon: 'emoji_events', label: 'Results' },
+  { href: '/dashboard/admin/reports', icon: 'analytics', label: 'Reports' },
 ];
 
 const studentLinks = [
@@ -19,6 +21,12 @@ const studentLinks = [
 
 export default function SideNav({ role = 'student' }) {
   const pathname = usePathname();
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const u = localStorage.getItem('user');
+    if (u) setUser(JSON.parse(u));
+  }, []);
   const links = role === 'admin' ? adminLinks : studentLinks;
   const brand = role === 'admin' ? 'SPORTS SPHERE ADMIN' : 'SPORTS SPHERE';
   const subtitle = role === 'admin' ? 'Administrative Portal' : 'Student Portal';
@@ -55,8 +63,12 @@ export default function SideNav({ role = 'student' }) {
         })}
       </div>
 
-      {/* Bottom: Logout */}
-      <div className="px-4">
+      {/* Bottom: User & Logout */}
+      <div className="px-4 pb-4 mt-auto">
+        <div className="mb-4 text-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <p className="text-[10px] font-headline font-bold text-zinc-500 uppercase tracking-widest">Logged in as</p>
+          <p className="text-xs font-headline font-black italic text-primary uppercase tracking-wider truncate">{user ? (user.username || user.name || 'User') : '...'}</p>
+        </div>
         <button
           className="w-full bg-surface-container-high text-on-surface font-headline font-bold py-3 rounded-lg text-xs uppercase tracking-wider hover:bg-error/20 hover:text-error transition-all opacity-0 group-hover:opacity-100"
           onClick={() => { localStorage.removeItem('user'); window.location.href = '/login'; }}

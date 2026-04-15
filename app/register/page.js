@@ -67,7 +67,7 @@ export default function Register() {
                     STUDENT <span className="text-primary">PORTAL</span>
                 </h1>
                 <p className="font-body text-on-surface-variant tracking-wide">
-                    Official Registration for <span className="text-primary font-bold">CDGI Sports Sphere</span>
+                    Official Registration for <span className="text-primary font-bold">CDGI Sports Management</span>
                 </p>
             </div>
 
@@ -262,7 +262,7 @@ export default function Register() {
             </div>
             
             <p className="text-center mt-12 text-[10px] text-on-surface-variant/40 font-bold uppercase tracking-widest">
-              Verified Management System - CDGI Sports Sphere
+              Official CDGI Sports Management System
             </p>
         </main>
     </div>

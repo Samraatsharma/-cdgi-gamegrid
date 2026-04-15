@@ -49,6 +49,7 @@ async function setup() {
         name TEXT NOT NULL,
         sport TEXT NOT NULL,
         date TEXT NOT NULL,
+        end_date TEXT NOT NULL,
         eligibility TEXT NOT NULL,
         allowed_branches TEXT DEFAULT 'All',
         allowed_years TEXT DEFAULT 'All',
@@ -56,7 +57,17 @@ async function setup() {
         image_url TEXT,
         max_participants INTEGER DEFAULT 50,
         registered_count INTEGER DEFAULT 0,
-        description TEXT DEFAULT ''
+        description TEXT DEFAULT '',
+        entry_fee INTEGER DEFAULT 0,
+        payment_qrcode TEXT,
+        coordinator_name TEXT,
+        coordinator_contact TEXT,
+        venue TEXT DEFAULT 'TBD',
+        equipment TEXT DEFAULT 'Standard Equipment',
+        prize_pool TEXT DEFAULT 'Certificates & Medals',
+        rules TEXT DEFAULT 'Standard College Rules Apply',
+        event_format TEXT DEFAULT 'Knockout',
+        gender_category TEXT DEFAULT 'Open for All'
       );
 
       CREATE TABLE registrations (
@@ -64,6 +75,8 @@ async function setup() {
         student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
         event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
         registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        payment_screenshot_url TEXT,
+        payment_status TEXT DEFAULT 'not_required',
         UNIQUE(student_id, event_id)
       );
 
@@ -121,6 +134,7 @@ async function setup() {
         name TEXT NOT NULL,
         sport TEXT NOT NULL,
         date TEXT NOT NULL,
+        end_date TEXT NOT NULL,
         eligibility TEXT NOT NULL,
         allowed_branches TEXT DEFAULT 'All',
         allowed_years TEXT DEFAULT 'All',
@@ -128,7 +142,17 @@ async function setup() {
         image_url TEXT,
         max_participants INTEGER DEFAULT 50,
         registered_count INTEGER DEFAULT 0,
-        description TEXT DEFAULT ''
+        description TEXT DEFAULT '',
+        entry_fee INTEGER DEFAULT 0,
+        payment_qrcode TEXT,
+        coordinator_name TEXT,
+        coordinator_contact TEXT,
+        venue TEXT DEFAULT 'TBD',
+        equipment TEXT DEFAULT 'Standard Equipment',
+        prize_pool TEXT DEFAULT 'Certificates & Medals',
+        rules TEXT DEFAULT 'Standard College Rules Apply',
+        event_format TEXT DEFAULT 'Knockout',
+        gender_category TEXT DEFAULT 'Open for All'
       );
 
       CREATE TABLE registrations (
@@ -136,6 +160,8 @@ async function setup() {
         student_id INTEGER NOT NULL,
         event_id INTEGER NOT NULL,
         registered_at TEXT DEFAULT (datetime('now')),
+        payment_screenshot_url TEXT,
+        payment_status TEXT DEFAULT 'not_required',
         UNIQUE(student_id, event_id),
         FOREIGN KEY(student_id) REFERENCES students(id) ON DELETE CASCADE,
         FOREIGN KEY(event_id) REFERENCES events(id) ON DELETE CASCADE
@@ -225,8 +251,8 @@ async function setup() {
   
   for (const e of events) {
     const res = await db.run(
-      'INSERT INTO events (name, sport, date, status, eligibility, allowed_branches, allowed_years, image_url, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [e.name, e.sport, e.date, e.status, e.elig, e.branches, e.years, e.img, e.desc]
+      'INSERT INTO events (name, sport, date, end_date, status, eligibility, allowed_branches, allowed_years, image_url, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [e.name, e.sport, e.date, e.date, e.status, e.elig, e.branches, e.years, e.img, e.desc]
     );
     await db.run('INSERT INTO logistics (event_id, ground) VALUES (?, ?)', [res.lastID, e.sport + ' Court 1']);
   }

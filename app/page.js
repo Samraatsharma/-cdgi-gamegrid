@@ -40,7 +40,7 @@ export default function LandingPage() {
       {/* Navigation (Landing Specific) */}
       <nav className="fixed top-0 left-0 w-full z-[100] px-8 py-6 flex justify-between items-center transition-all duration-500 bg-gradient-to-b from-surface-container-lowest via-surface-container-lowest/80 to-transparent backdrop-blur-md">
         <div className="flex items-center gap-2">
-          <h1 className="text-3xl font-black italic tracking-tighter text-primary font-headline">CDGI <span className="text-on-surface">Sports Sphere</span></h1>
+          <h1 className="text-3xl font-black italic tracking-tighter text-primary font-headline">GAME<span className="text-on-surface">GRID</span> <span className="text-primary/80">SPORTS</span></h1>
         </div>
         <div className="flex items-center gap-6">
           {isLoggedIn ? (
@@ -73,7 +73,7 @@ export default function LandingPage() {
         <div className="relative z-10 max-w-5xl space-y-8">
           <div className="inline-flex items-center gap-3 px-4 py-1 bg-primary/20 border border-primary/30 backdrop-blur-md rounded-full w-fit">
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            <span className="text-primary font-headline font-bold italic text-xs tracking-widest uppercase">OFFICIAL SPORTS PORTAL</span>
+            <span className="text-primary font-headline font-bold italic text-xs tracking-widest uppercase">OFFICIAL GAMEGRID ECOSYSTEM</span>
           </div>
           
           <h1 className="text-7xl md:text-9xl font-headline font-black italic uppercase leading-[0.8] tracking-tighter" style={{ textShadow: '0 0 40px rgba(184,253,55,0.2)' }}>
@@ -82,7 +82,7 @@ export default function LandingPage() {
           </h1>
           
           <p className="text-lg md:text-2xl text-on-surface-variant max-w-2xl font-light tracking-wide leading-relaxed">
-            The official platform for CDGI sports management and student participation. Register for upcoming events, track tournament results, and view the global rankings.
+            The official platform for GameGrid sports management and competitive excellence. Register for upcoming events, track tournament results, and view the global rankings.
           </p>
 
           <div className="flex flex-wrap gap-6 pt-6">
@@ -136,7 +136,7 @@ export default function LandingPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {featuredEvents.length > 0 ? (
             featuredEvents.map((ev, i) => (
-              <div key={ev.id} className="group relative rounded-2xl overflow-hidden bg-surface-container-high border border-outline-variant/10 hover:border-primary/30 transition-all duration-500 shadow-xl">
+              <div key={ev.id} onClick={() => router.push(`/events/${ev.id}`)} className="group relative rounded-2xl overflow-hidden bg-surface-container-high border border-outline-variant/10 hover:border-primary/30 transition-all duration-500 shadow-xl cursor-pointer">
                 <div className="h-64 relative overflow-hidden">
                   <img src={ev.image_url} alt={ev.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                   <div className="absolute inset-0 bg-gradient-to-t from-surface-container-high via-transparent to-transparent" />
@@ -150,9 +150,7 @@ export default function LandingPage() {
                     <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-sm">sports</span>{ev.sport}</span>
                     <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-sm">calendar_today</span>{new Date(ev.date).toLocaleDateString()}</span>
                   </div>
-                  <Link href={`/events/${ev.id}`}>
-                    <button className="w-full mt-4 py-4 bg-surface-variant text-on-surface font-headline font-black italic tracking-widest uppercase hover:bg-primary hover:text-on-primary transition-all duration-300">DETAILS</button>
-                  </Link>
+                  <button className="w-full mt-4 py-4 bg-surface-variant text-on-surface font-headline font-black italic tracking-widest uppercase hover:bg-primary hover:text-on-primary transition-all duration-300">DETAILS</button>
                 </div>
               </div>
             ))
@@ -170,7 +168,7 @@ export default function LandingPage() {
         
         <div className="mb-16 text-center space-y-4 relative z-10">
           <h2 className="text-5xl md:text-7xl font-headline font-black italic tracking-tighter uppercase leading-none">EXPLORE <span className="text-secondary">DISCIPLINES</span></h2>
-          <p className="text-on-surface-variant font-headline font-bold tracking-widest uppercase text-sm">Official athletic programs at CDGI</p>
+          <p className="text-on-surface-variant font-headline font-bold tracking-widest uppercase text-sm">Official athletic programs at GameGrid Sports</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 relative z-10">
@@ -199,7 +197,7 @@ export default function LandingPage() {
             READY TO <br /> COMPETE?
           </h2>
           <p className="text-on-primary/70 max-w-2xl mx-auto text-lg md:text-2xl font-bold italic uppercase tracking-wider">
-             Join 500+ CDGI students and manage your sports participation in one place.
+             Join the GameGrid community and manage your sports participation in one high-performance interface.
           </p>
           <div className="flex flex-wrap justify-center gap-6 pt-4">
             {isLoggedIn ? (

@@ -56,6 +56,10 @@ function EventsContent() {
   const [registrations, setRegistrations] = useState([]);
   const [applying, setApplying] = useState(null);
 
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedEventToApply, setSelectedEventToApply] = useState(null);
+  const [screenshotPreview, setScreenshotPreview] = useState(null);
+
   // Filters
   const [search, setSearch] = useState('');
   const [sport, setSport] = useState(sportFilter || '');
@@ -95,14 +99,40 @@ function EventsContent() {
     return { eligible: true };
   };
 
-  const handleApply = async (eventId) => {
+  const initiateApply = (event) => {
     if (!user || user.role !== 'student') { router.push('/login'); return; }
     
-    // Final eligibility check before API call
-    const event = allEvents.find(e => e.id === eventId);
     const { eligible, reason } = checkEligibility(event);
     if (!eligible) {
       toast.error(`Ineligible: ${reason}`);
+      return;
+    }
+
+    if (event.entry_fee > 0) {
+      setSelectedEventToApply(event);
+      setShowPaymentModal(true);
+    } else {
+      handleApply(event.id);
+    }
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setScreenshotPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleApply = async (eventId, screenshotUrl = null) => {
+    if (!user || user.role !== 'student') { router.push('/login'); return; }
+    
+    const event = allEvents.find(e => e.id === eventId);
+    if (event.entry_fee > 0 && !screenshotUrl) {
+      toast.error('Payment screenshot is required.');
       return;
     }
 
@@ -111,7 +141,7 @@ function EventsContent() {
       const res = await fetch('/api/registrations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ student_id: user.id, event_id: eventId }),
+        body: JSON.stringify({ student_id: user.id, event_id: eventId, payment_screenshot_url: screenshotUrl }),
       });
       const data = await res.json();
       if (data.success) {
@@ -122,8 +152,8 @@ function EventsContent() {
         const eObj = allEvents.find(e => e.id === eventId);
         const newNotif = { 
           id: Date.now(), 
-          title: 'Direct Registration', 
-          message: `Successfully recruited for ${eObj?.name}. Report to Indore Arena on schedule.`, 
+          title: 'Registration Verified', 
+          message: `Successfully registered for ${eObj?.name}. Check your dashboard for details.`, 
           time: 'Just now', 
           type: 'success' 
         };
@@ -131,6 +161,10 @@ function EventsContent() {
         localStorage.setItem('notifications', JSON.stringify([newNotif, ...notifs]));
         
         setAllEvents(prev => prev.map(e => e.id === eventId ? { ...e, registered_count: (e.registered_count || 0) + 1 } : e));
+        
+        setShowPaymentModal(false);
+        setScreenshotPreview(null);
+        setSelectedEventToApply(null);
       } else {
         toast.error(data.error || 'Registration failed.');
       }
@@ -173,7 +207,7 @@ function EventsContent() {
                BATTLE <span className="text-primary italic">READY</span>
             </h1>
             <p className="font-body text-on-surface-variant text-lg max-w-2xl">
-              CDGI Tournament Schedule. Your eligibility is automatically analyzed.
+              CDGI Tournament Schedule. Browse and register for upcoming events.
             </p>
           </div>
           {user?.role === 'student' && (
@@ -182,7 +216,7 @@ function EventsContent() {
                    <span className="material-symbols-outlined text-primary">person</span>
                 </div>
                 <div>
-                   <p className="text-[10px] font-headline font-bold uppercase tracking-widest text-on-surface-variant">Profile Analysis</p>
+                   <p className="text-[10px] font-headline font-bold uppercase tracking-widest text-on-surface-variant">My Profile</p>
                    <p className="font-headline font-black italic text-sm text-primary uppercase">{user.branch} • Year {user.year}</p>
                 </div>
              </div>
@@ -195,7 +229,7 @@ function EventsContent() {
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search Arena for events..."
+            placeholder="Search for events..."
             className="w-full bg-surface-container-high border border-outline-variant/20 rounded-2xl py-5 pl-12 pr-4 text-on-surface placeholder:text-on-surface-variant/40 focus:ring-2 focus:ring-primary outline-none font-headline font-bold tracking-widest transition-all shadow-lg"
           />
         </div>
@@ -262,7 +296,7 @@ function EventsContent() {
                 onClick={() => { setSport(''); setStatusFilter(''); setSearch(''); setSortBy('latest'); setEligibilityOnly(false); }}
                 className="w-full bg-surface-container-highest text-on-surface-variant font-headline font-bold italic py-4 rounded-xl hover:bg-error hover:text-white transition-all text-xs uppercase tracking-widest border border-outline-variant/10"
               >
-                Reset Sensors
+                Clear Filters
               </button>
             </div>
           </aside>
@@ -272,8 +306,8 @@ function EventsContent() {
               <div className="col-span-full flex justify-center py-24"><div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>
             ) : filtered.length === 0 ? (
               <div className="col-span-full bg-surface-container/40 rounded-3xl p-24 text-center border-2 border-dashed border-outline-variant/10">
-                <span className="material-symbols-outlined text-7xl text-on-surface-variant/20 mb-6">sensors_off</span>
-                <p className="text-on-surface-variant font-headline italic font-bold text-2xl uppercase tracking-tighter">No Events Detected in Current Perimeter</p>
+                <span className="material-symbols-outlined text-7xl text-on-surface-variant/20 mb-6">event_busy</span>
+                <p className="text-on-surface-variant font-headline italic font-bold text-2xl uppercase tracking-tighter">No Events Found Matching Criteria</p>
               </div>
             ) : filtered.map((ev) => {
               const hasApplied = registrations.some(r => r.event_id === ev.id);
@@ -285,7 +319,7 @@ function EventsContent() {
               return (
                 <article key={ev.id} className="group relative">
                   <div className={`bg-surface-container-high rounded-3xl overflow-hidden flex flex-col h-full border ${eligible ? 'border-outline-variant/10 hover:border-primary/40 shadow-xl' : 'border-error/20 opacity-80'} transition-all duration-500`}>
-                    <div className="relative h-60 overflow-hidden">
+                    <div className="relative h-60 overflow-hidden cursor-pointer" onClick={() => router.push(`/events/${ev.id}`)}>
                       <img
                         src={ev.image_url || 'https://images.unsplash.com/photo-1543326162-8534015fbe8e?q=80&w=800'}
                         className={`w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 ${!eligible ? 'grayscale sepia' : ''}`}
@@ -307,13 +341,20 @@ function EventsContent() {
                     <div className="p-8 flex flex-col flex-1">
                       <div className="flex justify-between items-start mb-2">
                         <span className="font-headline text-secondary text-xs font-black italic uppercase tracking-[0.3em]">{ev.sport}</span>
-                        <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">RANK B-3</span>
+                        <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Tournament</span>
                       </div>
-                      <h3 className="font-headline text-2xl font-black italic tracking-tighter text-on-surface mb-4 line-clamp-2 leading-none">{ev.name}</h3>
+                      <h3 onClick={() => router.push(`/events/${ev.id}`)} className="font-headline text-2xl font-black italic tracking-tighter text-on-surface mb-4 line-clamp-2 leading-none cursor-pointer hover:text-primary transition-colors">{ev.name}</h3>
                       
                       <div className="space-y-2 mb-6">
                         <div className="flex items-center justify-between text-[11px] font-headline font-bold uppercase tracking-widest text-on-surface-variant">
-                          <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-sm">calendar_today</span>{new Date(ev.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+                          <span className="flex items-center gap-1.5">
+                            <span className="material-symbols-outlined text-sm">calendar_today</span>
+                            {ev.date === ev.end_date || !ev.end_date ? (
+                              new Date(ev.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+                            ) : (
+                              `${new Date(ev.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} - ${new Date(ev.end_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`
+                            )}
+                          </span>
                           <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-sm">school</span>{ev.eligibility}</span>
                         </div>
                         {!eligible && (
@@ -328,22 +369,22 @@ function EventsContent() {
                       <div className="mt-8 pt-6 border-t border-outline-variant/10 flex gap-3">
                         <Link href={`/events/${ev.id}`} className="flex-1">
                           <button className="w-full bg-surface-container-highest text-on-surface font-headline font-black italic py-4 rounded-2xl border border-outline-variant/10 hover:border-secondary transition-all text-xs uppercase tracking-widest">
-                            ANALYZE
+                            VIEW DETAILS
                           </button>
                         </Link>
 
                         {user?.role !== 'admin' && (
                           hasApplied ? (
                             <button disabled className="flex-1 bg-primary/10 text-primary font-headline font-black italic py-4 rounded-2xl text-xs border border-primary/30 shadow-inner">
-                              CONFIRMED
+                              REGISTERED
                             </button>
                           ) : isOpen ? (
                             <button
-                              onClick={() => handleApply(ev.id)}
+                              onClick={() => initiateApply(ev)}
                               disabled={isApplying}
                               className="flex-1 bg-primary text-on-primary font-headline font-black italic py-4 rounded-2xl text-xs hover:scale-[1.03] transition-all shadow-xl disabled:opacity-60"
                             >
-                              {isApplying ? '...' : 'INITIALIZE'}
+                              {isApplying ? '...' : 'REGISTER'}
                             </button>
                           ) : (
                             <button disabled className="flex-1 bg-surface-container-highest text-on-surface-variant/40 font-headline font-black italic py-4 rounded-2xl text-xs border border-outline-variant/10 cursor-not-allowed uppercase tracking-widest">
@@ -360,6 +401,60 @@ function EventsContent() {
           </section>
         </div>
       </div>
+
+      {/* Payment Processing Modal */}
+      {showPaymentModal && selectedEventToApply && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-surface-container-high border border-outline-variant/20 rounded-3xl p-8 max-w-md w-full shadow-2xl relative max-h-[85vh] overflow-y-auto">
+            <button 
+              onClick={() => { setShowPaymentModal(false); setScreenshotPreview(null); setSelectedEventToApply(null); }}
+              className="absolute top-6 right-6 text-on-surface-variant hover:text-white"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+            <h3 className="text-2xl font-headline font-black italic uppercase tracking-tighter mb-2">Complete Payment</h3>
+            <p className="text-on-surface-variant text-sm mb-6">Entry fee for {selectedEventToApply.name} is <strong className="text-primary">₹{selectedEventToApply.entry_fee}</strong>.</p>
+            
+            {selectedEventToApply.payment_qrcode ? (
+              <div className="mb-6 flex flex-col items-center">
+                <img src={selectedEventToApply.payment_qrcode} alt="Payment QR Code" className="w-48 h-48 rounded-xl border-4 border-surface-container-highest mb-2" />
+                <span className="text-[10px] text-on-surface-variant uppercase tracking-widest">Scan to Pay</span>
+              </div>
+            ) : (
+              <div className="mb-6 p-6 bg-surface-container-highest rounded-xl text-center border-2 border-dashed border-outline-variant/30">
+                <span className="material-symbols-outlined text-4xl mb-2 text-primary/40">qr_code_scanner</span>
+                <p className="text-xs uppercase tracking-widest text-on-surface-variant font-bold">No QR Code Provided</p>
+                <p className="text-[10px] text-on-surface-variant/60 mt-1">Contact Coordinator: {selectedEventToApply.coordinator_name} ({selectedEventToApply.coordinator_contact})</p>
+              </div>
+            )}
+
+            <div className="mb-8">
+              <label className="block text-[10px] font-headline font-bold uppercase tracking-widest text-on-surface-variant mb-2">Upload Payment Screenshot</label>
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handleImageUpload}
+                className="w-full text-sm text-on-surface-variant file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:uppercase file:tracking-widest file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all font-body cursor-pointer"
+              />
+              {screenshotPreview && (
+                <div className="mt-4 relative rounded-xl overflow-hidden border border-outline-variant/20 h-32">
+                  <img src={screenshotPreview} alt="Screenshot preview" className="w-full h-full object-cover" />
+                </div>
+              )}
+            </div>
+
+            <button 
+              onClick={() => handleApply(selectedEventToApply.id, screenshotPreview)}
+              disabled={applying === selectedEventToApply.id || !screenshotPreview}
+              className="w-full py-4 rounded-xl font-headline font-black italic text-lg bg-primary text-on-primary shadow-[0_10px_30px_rgba(184,253,55,0.3)] hover:bg-primary-hover disabled:opacity-50 flex items-center justify-center gap-2 transition-all cursor-pointer"
+            >
+              {applying === selectedEventToApply.id ? <span className="material-symbols-outlined animate-spin">refresh</span> : <span className="material-symbols-outlined">verified</span>}
+              {applying === selectedEventToApply.id ? 'PROCESSING...' : 'SUBMIT REGISTRATION'}
+            </button>
+          </div>
+        </div>
+      )}
+
       <Footer />
     </div>
   );

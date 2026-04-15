@@ -2,8 +2,8 @@ import './globals.css';
 import { Toaster } from 'react-hot-toast';
 
 export const metadata = {
-  title: 'CDGI Sports Sphere',
-  description: 'Elite Performance Management System',
+  title: 'GameGrid Sports',
+  description: 'The Ultimate Sports Ecosystem',
 };
 
 export default function RootLayout({ children }) {

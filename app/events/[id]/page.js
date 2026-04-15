@@ -43,6 +43,8 @@ export default function EventDetail() {
   const [user, setUser] = useState(null);
   const [hasApplied, setHasApplied] = useState(false);
   const [applying, setApplying] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [screenshotPreview, setScreenshotPreview] = useState(null);
 
   useEffect(() => {
     const u = localStorage.getItem('user');
@@ -81,7 +83,7 @@ export default function EventDetail() {
     return { eligible: true };
   };
 
-  const handleApply = async () => {
+  const initiateApply = () => {
     if (!user) { router.push('/login'); return; }
     if (user.role === 'admin') return;
 
@@ -91,12 +93,36 @@ export default function EventDetail() {
       return;
     }
 
+    if (event.entry_fee > 0) {
+      setShowPaymentModal(true);
+    } else {
+      handleApply();
+    }
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setScreenshotPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleApply = async () => {
+    if (event.entry_fee > 0 && !screenshotPreview) {
+      toast.error('Payment screenshot is required.');
+      return;
+    }
+
     setApplying(true);
     try {
       const res = await fetch('/api/registrations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ student_id: user.id, event_id: parseInt(id) }),
+        body: JSON.stringify({ student_id: user.id, event_id: parseInt(id), payment_screenshot_url: screenshotPreview }),
       });
       const data = await res.json();
       if (data.success) {
@@ -106,8 +132,8 @@ export default function EventDetail() {
         // Add Smart Notification
         const newNotif = { 
           id: Date.now(), 
-          title: 'Recruitment Confirmed', 
-          message: `Your position in ${event?.name} has been verified. Check Temporal Chronos for briefing.`, 
+          title: 'Registration Confirmed', 
+          message: `Your registration for ${event?.name} has been verified.`, 
           time: 'Just now', 
           type: 'success' 
         };
@@ -115,11 +141,13 @@ export default function EventDetail() {
         localStorage.setItem('notifications', JSON.stringify([newNotif, ...notifs]));
 
         setEvent(prev => ({ ...prev, registered_count: (prev.registered_count || 0) + 1 }));
+        setScreenshotPreview(null);
+        setShowPaymentModal(false);
       } else {
-        toast.error(data.error || 'Interface initialization failed.');
+        toast.error(data.error || 'Registration failed.');
       }
     } catch {
-      toast.error('Network protocol error — retry suggested.');
+      toast.error('Network error — please try again.');
     } finally {
       setApplying(false);
     }
@@ -142,7 +170,7 @@ export default function EventDetail() {
       return (
         <button disabled className="px-12 py-5 rounded-2xl font-headline font-black italic text-lg bg-primary/10 text-primary border border-primary/30 flex items-center gap-3 shadow-inner">
           <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
-          CONFIRMED
+          REGISTERED
         </button>
       );
     }
@@ -155,9 +183,9 @@ export default function EventDetail() {
       );
     }
     if (!canRegister) {
-      const label = isFull ? 'ARENA FULL' :
-        event.status === 'upcoming' ? 'CYCLE NOT OPEN' :
-        event.status === 'completed' ? 'CYCLE ENDED' : 'CLOSED';
+      const label = isFull ? 'EVENT FULL' :
+        event.status === 'upcoming' ? 'NOT OPEN YET' :
+        event.status === 'completed' ? 'EVENT ENDED' : 'CLOSED';
       return (
         <button disabled className="px-12 py-5 rounded-2xl font-headline font-black italic text-lg bg-surface-container-high text-on-surface-variant border border-outline-variant/20 cursor-not-allowed opacity-70">
           {label}
@@ -166,19 +194,19 @@ export default function EventDetail() {
     }
     return (
       <button
-        onClick={handleApply}
+        onClick={initiateApply}
         disabled={applying}
         className="px-12 py-5 rounded-2xl font-headline font-black italic text-lg bg-primary text-on-primary shadow-[0_15px_50px_rgba(184,253,55,0.4)] hover:scale-105 hover:shadow-[0_20px_60px_rgba(184,253,55,0.6)] transition-all duration-500 active:scale-95 disabled:opacity-60 flex items-center gap-3"
       >
         {applying ? (
           <>
             <span className="w-5 h-5 border-2 border-on-primary border-t-transparent rounded-full animate-spin" />
-            INITIALIZING...
+            PROCESSING...
           </>
         ) : (
           <>
-            <span className="material-symbols-outlined">bolt</span>
-            RECRUIT NOW
+            <span className="material-symbols-outlined">how_to_reg</span>
+            REGISTER NOW
           </>
         )}
       </button>
@@ -186,7 +214,7 @@ export default function EventDetail() {
   };
 
   return (
-    <div className="bg-surface-container-lowest min-h-screen font-body overflow-x-hidden">
+    <div className="bg-surface-container-lowest min-h-screen font-body">
       <TopNav />
       <main className="pt-20 pb-24">
         {/* Cinematic Hero */}
@@ -216,9 +244,13 @@ export default function EventDetail() {
 
               <div className="flex flex-wrap gap-10 mt-6 items-center">
                 <div className="flex flex-col">
-                  <span className="text-on-surface-variant font-headline font-black italic text-[10px] uppercase tracking-widest opacity-60">MISSION DATE</span>
+                  <span className="text-on-surface-variant font-headline font-black italic text-[10px] uppercase tracking-widest opacity-60">EVENT DATE</span>
                   <span className="text-2xl font-black font-headline italic tracking-tighter text-white">
-                    {new Date(event.date).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                    {event.date === event.end_date || !event.end_date ? (
+                      new Date(event.date).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+                    ) : (
+                      `${new Date(event.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} - ${new Date(event.end_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}`
+                    )}
                   </span>
                 </div>
                 <div className="w-px h-12 bg-white/10 hidden md:block" />
@@ -232,8 +264,9 @@ export default function EventDetail() {
                   {user?.role !== 'admin' && getRegisterButton()}
                   {!user && (
                     <Link href="/login">
-                      <button className="px-12 py-5 rounded-2xl font-headline font-black italic text-lg bg-primary text-on-primary shadow-2xl hover:scale-105 transition-all">
-                        INITIALIZE LOGIN
+                      <button className="px-12 py-5 rounded-2xl font-headline font-black italic text-lg bg-primary text-on-primary shadow-2xl hover:scale-105 transition-all flex items-center gap-3">
+                        <span className="material-symbols-outlined">login</span>
+                        LOGIN TO REGISTER
                       </button>
                     </Link>
                   )}
@@ -264,39 +297,52 @@ export default function EventDetail() {
             <div className="bg-surface-container-high/40 backdrop-blur-2xl border border-outline-variant/10 p-10 rounded-3xl shadow-2xl relative">
               <div className="flex items-center gap-4 mb-8">
                 <span className="material-symbols-outlined text-primary text-4xl">database</span>
-                <h2 className="font-headline font-black italic text-3xl uppercase tracking-tighter">Mission Brief</h2>
+                <h2 className="font-headline font-black italic text-3xl uppercase tracking-tighter">About the Event</h2>
               </div>
-              <p className="text-on-surface-variant text-xl leading-relaxed italic font-medium opacity-80 decoration-primary decoration-2 underline-offset-4">
-                {event.description || 'Global tournament initialization. This event benchmarks top-tier performance against academic cohorts.'}
+              <p className="text-on-surface-variant text-xl leading-relaxed italic font-medium opacity-80 decoration-primary decoration-2 underline-offset-4 mb-4">
+                {event.description || 'This is an official sports event verified by CDGI.'}
               </p>
               
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-12">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-12 mb-8">
                 {[
                   ['Eligibility', event.eligibility, 'school'],
-                  ['Sport', event.sport, 'sports_martial_arts'],
-                  ['Format', 'Elite Knockout', 'format_list_numbered'],
-                  ['Slots', event.max_participants, 'group']
-                ].map(([k, v, icon]) => (
-                  <div key={k} className="p-6 bg-surface-container-lowest rounded-2xl border border-outline-variant/10 hover:border-primary/40 transition-colors group">
+                  ['Category', event.gender_category || 'Open for All', 'wc'],
+                  ['Format', event.event_format || 'Knockout', 'format_list_numbered'],
+                  ['Slots', event.max_participants, 'group'],
+                  ['Fee', event.entry_fee > 0 ? `₹${event.entry_fee}` : 'Free', 'payments'],
+                  ['Prize', event.prize_pool || 'Medals & Certs', 'emoji_events'],
+                  ['Equip / Gear', event.equipment || 'Standard', 'sports_baseball'],
+                  ['Coordinator', event.coordinator_name || 'TBD', 'person'],
+                ].map(([k, v, icon], idx) => (
+                  <div key={idx} className="p-6 bg-surface-container-lowest rounded-2xl border border-outline-variant/10 hover:border-primary/40 transition-colors group flex flex-col justify-between">
                     <span className="material-symbols-outlined text-primary/40 group-hover:text-primary transition-colors mb-2">{icon}</span>
-                    <span className="block text-on-surface font-headline font-black text-xl italic tracking-tighter">{v}</span>
+                    <span className="block text-on-surface font-headline font-black text-xl italic tracking-tighter truncate" title={v}>{v}</span>
                     <span className="text-on-surface-variant font-headline font-bold text-[9px] uppercase tracking-widest block mt-1">{k}</span>
                   </div>
                 ))}
               </div>
+
+              {event.rules && (
+                <div className="mt-8 p-6 rounded-[20px] bg-secondary/10 border-l-4 border-secondary space-y-2">
+                   <h4 className="text-xs font-headline font-black italic uppercase tracking-widest text-secondary flex items-center gap-2">
+                      <span className="material-symbols-outlined text-sm">gavel</span> Arena Regulations
+                   </h4>
+                   <p className="text-white text-sm whitespace-pre-line">{event.rules}</p>
+                </div>
+              )}
             </div>
 
             {/* Protocol Block */}
             <div className="bg-surface-container-high/40 backdrop-blur-2xl border border-outline-variant/10 p-10 rounded-3xl shadow-2xl">
               <div className="flex items-center gap-4 mb-8">
                 <span className="material-symbols-outlined text-secondary text-4xl">security</span>
-                <h2 className="font-headline font-black italic text-3xl uppercase tracking-tighter">Engagement Protocol</h2>
+                <h2 className="font-headline font-black italic text-3xl uppercase tracking-tighter">Participation Guidelines</h2>
               </div>
               <div className="space-y-6">
                 {[
-                  ['Identity Verification', 'Biometric/Roll Number verification required at arena entrance.'],
-                  ['Standard Gear', 'Participate only in standardized CDGI athletic apparel.'],
-                  ['Dynamic Ranking', 'Performance here impacts your global Sports Sphere standing.'],
+                  ['Identity Verification', 'College ID/Roll Number verification required at venue entrance.'],
+                  ['Standard Gear', 'Participate only in appropriate sports apparel.'],
+                  ['Fair Play', 'Maintain sportsmanship and strictly follow the referee rules.'],
                 ].map(([title, desc], i) => (
                   <div key={i} className="flex items-start gap-6 group">
                     <div className="h-10 w-10 rounded-xl bg-surface-container-highest flex items-center justify-center font-headline font-black italic text-secondary text-lg border border-secondary/20 group-hover:bg-secondary group-hover:text-on-secondary transition-all">
@@ -315,24 +361,24 @@ export default function EventDetail() {
           {/* Side Intelligence */}
           <div className="flex flex-col gap-6">
             <div className="p-8 bg-surface-container-high border border-outline-variant/10 rounded-3xl shadow-2xl space-y-6">
-              <h3 className="font-headline font-black italic text-lg uppercase tracking-widest text-on-surface-variant/40">LOCATION DATA</h3>
+              <h3 className="font-headline font-black italic text-lg uppercase tracking-widest text-on-surface-variant/40">VENUE DETAILS</h3>
               <div className="space-y-4">
                 <div className="flex items-center gap-4">
                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
                       <span className="material-symbols-outlined text-primary">distance</span>
                    </div>
                    <div>
-                      <p className="text-[10px] font-headline font-bold uppercase tracking-widest text-on-surface-variant">Primary Hub</p>
-                      <p className="font-headline font-black italic text-white uppercase tracking-tight">Indore Main Arena</p>
+                      <p className="text-[10px] font-headline font-bold uppercase tracking-widest text-on-surface-variant">Campus</p>
+                      <p className="font-headline font-black italic text-white uppercase tracking-tight">CDGI Campus</p>
                    </div>
                 </div>
                 <div className="flex items-center gap-4">
-                   <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center border border-secondary/20">
+                   <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center border border-secondary/20 shrink-0">
                       <span className="material-symbols-outlined text-secondary">explore</span>
                    </div>
                    <div>
-                      <p className="text-[10px] font-headline font-bold uppercase tracking-widest text-on-surface-variant">Vector</p>
-                      <p className="font-headline font-black italic text-white uppercase tracking-tight">Internal Ground A</p>
+                      <p className="text-[10px] font-headline font-bold uppercase tracking-widest text-on-surface-variant">Location</p>
+                      <p className="font-headline font-black italic text-white uppercase tracking-tight line-clamp-1">{event.venue || 'To Be Decided'}</p>
                    </div>
                 </div>
               </div>
@@ -342,10 +388,10 @@ export default function EventDetail() {
             {/* Profile Check */}
             {user?.role === 'student' && (
                <div className={`p-8 rounded-3xl border-2 ${eligible ? 'bg-primary/5 border-primary/20' : 'bg-error/5 border-error/20'} shadow-2xl`}>
-                  <p className="text-[10px] font-headline font-bold uppercase tracking-widest text-on-surface-variant mb-4">PROFILE COMPATIBILITY</p>
+                  <p className="text-[10px] font-headline font-bold uppercase tracking-widest text-on-surface-variant mb-4">ELIGIBILITY CHECK</p>
                   <div className="space-y-3">
                      <div className="flex justify-between items-center bg-surface-container-low p-3 rounded-xl border border-outline-variant/5">
-                        <span className="text-[10px] font-headline font-black italic uppercase tracking-widest opacity-60">BRANCH MAP</span>
+                        <span className="text-[10px] font-headline font-black italic uppercase tracking-widest opacity-60">YOUR BRANCH</span>
                         <span className={`text-[10px] font-headline font-black italic uppercase tracking-widest ${event.allowed_branches === 'All' || event.allowed_branches?.includes(user.branch) ? 'text-primary' : 'text-error'}`}>{user.branch}</span>
                      </div>
                      <div className="flex justify-between items-center bg-surface-container-low p-3 rounded-xl border border-outline-variant/5">
@@ -360,12 +406,66 @@ export default function EventDetail() {
               onClick={() => router.push('/events')}
               className="w-full py-5 border border-outline-variant/20 text-on-surface font-headline font-black italic uppercase tracking-widest hover:bg-surface-container-high transition-all flex items-center justify-center gap-3 rounded-3xl group"
             >
-              <span className="material-symbols-outlined text-sm group-hover:-translate-x-2 transition-transform">arrow_selector_tool</span>
-              RETURN TO ARENA
+              <span className="material-symbols-outlined text-sm group-hover:-translate-x-2 transition-transform">arrow_back</span>
+              BACK TO EVENTS
             </button>
           </div>
         </section>
       </main>
+
+      {/* Payment Processing Modal */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-surface-container-high border border-outline-variant/20 rounded-3xl p-8 max-w-md w-full shadow-2xl relative max-h-[85vh] overflow-y-auto">
+            <button 
+              onClick={() => { setShowPaymentModal(false); setScreenshotPreview(null); }}
+              className="absolute top-6 right-6 text-on-surface-variant hover:text-white"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+            <h3 className="text-2xl font-headline font-black italic uppercase tracking-tighter mb-2">Complete Payment</h3>
+            <p className="text-on-surface-variant text-sm mb-6">Entry fee for {event.name} is <strong className="text-primary">₹{event.entry_fee}</strong>.</p>
+            
+            {event.payment_qrcode ? (
+              <div className="mb-6 flex flex-col items-center">
+                <img src={event.payment_qrcode} alt="Payment QR Code" className="w-48 h-48 rounded-xl border-4 border-surface-container-highest mb-2" />
+                <span className="text-[10px] text-on-surface-variant uppercase tracking-widest">Scan to Pay</span>
+              </div>
+            ) : (
+              <div className="mb-6 p-6 bg-surface-container-highest rounded-xl text-center border-2 border-dashed border-outline-variant/30">
+                <span className="material-symbols-outlined text-4xl mb-2 text-primary/40">qr_code_scanner</span>
+                <p className="text-xs uppercase tracking-widest text-on-surface-variant font-bold">No QR Code Provided</p>
+                <p className="text-[10px] text-on-surface-variant/60 mt-1">Contact Coordinator: {event.coordinator_name} ({event.coordinator_contact})</p>
+              </div>
+            )}
+
+            <div className="mb-8">
+              <label className="block text-[10px] font-headline font-bold uppercase tracking-widest text-on-surface-variant mb-2">Upload Payment Screenshot</label>
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handleImageUpload}
+                className="w-full text-sm text-on-surface-variant file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:uppercase file:tracking-widest file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all font-body"
+              />
+              {screenshotPreview && (
+                <div className="mt-4 relative rounded-xl overflow-hidden border border-outline-variant/20 h-32">
+                  <img src={screenshotPreview} alt="Screenshot preview" className="w-full h-full object-cover" />
+                </div>
+              )}
+            </div>
+
+            <button 
+              onClick={handleApply}
+              disabled={applying || !screenshotPreview}
+              className="w-full py-4 rounded-xl font-headline font-black italic text-lg bg-primary text-on-primary shadow-[0_10px_30px_rgba(184,253,55,0.3)] hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
+            >
+              {applying ? <span className="material-symbols-outlined animate-spin">refresh</span> : <span className="material-symbols-outlined">verified</span>}
+              {applying ? 'PROCESSING...' : 'SUBMIT PAYMENT & REGISTER'}
+            </button>
+          </div>
+        </div>
+      )}
+
       <Footer />
     </div>
   );

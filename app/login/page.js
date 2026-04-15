@@ -58,7 +58,7 @@ function LoginForm() {
 
       // Persist session
       localStorage.setItem('user', JSON.stringify(data.user));
-      toast.success(`Welcome back, ${data.user.name ? data.user.name.split(' ')[0] : 'Admin'} ⚡`);
+      toast.success(`Welcome back, ${data.user.name ? data.user.name.split(' ')[0] : 'Admin'}`);
       
       if (data.user.role === 'admin') router.push('/dashboard/admin');
       else router.push('/dashboard/student');
@@ -67,7 +67,7 @@ function LoginForm() {
        if (err.message === 'ACCOUNT_NOT_FOUND') {
          toast.error(
            <span>
-             No account found. <Link href="/register" className="underline font-bold">Register Now ⚡</Link>
+             No account found. <Link href="/register" className="underline font-bold">Register Now</Link>
            </span>,
            { duration: 6000 }
          );
@@ -190,7 +190,7 @@ function LoginForm() {
                 />
                 <span className="text-[10px] font-headline font-black italic uppercase tracking-widest text-on-surface-variant group-hover:text-on-surface transition-colors">Remember Me</span>
               </label>
-              <a href="#" className="text-[9px] font-headline font-black italic uppercase tracking-widest text-primary hover:underline">Forgot?</a>
+              <span className="text-[9px] font-headline font-black italic uppercase tracking-widest text-primary/60">Forgot Password? Contact Admin</span>
             </div>
 
             {/* Submit Section */}

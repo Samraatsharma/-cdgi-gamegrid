@@ -21,7 +21,7 @@ export default function TopNav({ activeTab = 'Live' }) {
       setNotifications(JSON.parse(savedNotifs));
     } else {
       const initialNotifs = [
-        { id: 1, title: 'Welcome to Sports Sphere', message: 'Complete your profile and view the upcoming events.', time: 'Just now', type: 'info' },
+        { id: 1, title: 'Welcome to GameGrid Sports', message: 'Complete your profile and view the upcoming events.', time: 'Just now', type: 'info' },
         { id: 2, title: 'Cricket Cup Live', message: 'Registration for the Annual Inter-College Cricket Cup is now open.', time: '2h ago', type: 'success' }
       ];
       setNotifications(initialNotifs);
@@ -56,7 +56,7 @@ export default function TopNav({ activeTab = 'Live' }) {
     <nav className="fixed top-0 w-full z-[150] bg-surface-container-lowest/80 backdrop-blur-2xl border-b border-outline-variant/10 flex justify-between items-center px-8 h-20">
       <Link href="/">
         <div className="text-2xl font-black italic tracking-tighter text-primary font-headline cursor-pointer hover:scale-105 transition-transform">
-          CDGI Sports Sphere
+          GameGrid Sports
         </div>
       </Link>
 

@@ -6,10 +6,12 @@ import SideNav from '../../../components/SideNav';
 import { toast } from 'react-hot-toast';
 
 const BLANK_EVENT = { 
-  name: '', sport: 'Cricket', date: '', eligibility: '', 
+  name: '', sport: 'Cricket', date: '', end_date: '', eligibility: '', 
   image_url: '', status: 'registration_open', 
   max_participants: 50, description: '',
-  allowed_branches: 'All', allowed_years: 'All'
+  allowed_branches: 'All', allowed_years: 'All',
+  entry_fee: 0, payment_qrcode: '', coordinator_name: '', coordinator_contact: '',
+  venue: '', equipment: '', prize_pool: '', rules: '', event_format: 'Knockout', gender_category: 'Open for All'
 };
 
 const STATUS_OPTIONS = [
@@ -169,13 +171,23 @@ export default function AdminDashboard() {
 
   const openEdit = (ev) => {
     setNewEvent({
-      name: ev.name, sport: ev.sport, date: ev.date,
+      name: ev.name, sport: ev.sport, date: ev.date, end_date: ev.end_date || ev.date,
       eligibility: ev.eligibility, image_url: ev.image_url || '',
       status: ev.status || 'registration_open',
       max_participants: ev.max_participants || 50,
       description: ev.description || '',
       allowed_branches: ev.allowed_branches || 'All',
-      allowed_years: ev.allowed_years || 'All'
+      allowed_years: ev.allowed_years || 'All',
+      entry_fee: ev.entry_fee || 0,
+      payment_qrcode: ev.payment_qrcode || '',
+      coordinator_name: ev.coordinator_name || '',
+      coordinator_contact: ev.coordinator_contact || '',
+      venue: ev.venue || '',
+      equipment: ev.equipment || '',
+      prize_pool: ev.prize_pool || '',
+      rules: ev.rules || '',
+      event_format: ev.event_format || 'Knockout',
+      gender_category: ev.gender_category || 'Open for All'
     });
     setEditingEventId(ev.id);
     setShowModal(true);
@@ -202,7 +214,7 @@ export default function AdminDashboard() {
   );
 
   return (
-    <div className="bg-surface-container-lowest text-on-surface min-h-screen font-body overflow-x-hidden">
+    <div className="bg-surface-container-lowest text-on-surface min-h-screen font-body">
       <SideNav role="admin" />
       <main className="ml-20 min-h-screen p-8 lg:p-12 relative">
         <div className="fixed top-[-10%] right-[-10%] w-[50%] h-[50%] bg-primary/5 blur-[150px] rounded-full pointer-events-none" />
@@ -214,10 +226,10 @@ export default function AdminDashboard() {
                <span className="w-1 h-1 rounded-full bg-primary animate-ping" />
                <p className="text-[10px] font-headline font-black italic uppercase tracking-[0.4em] text-primary">Administrative Portal</p>
             </div>
-            <h1 className="font-headline font-black italic text-6xl md:text-7xl tracking-tighter uppercase leading-[0.8] mb-2">
+            <h1 className="font-headline font-black italic text-5xl md:text-6xl tracking-tighter uppercase leading-tight mt-4 mb-2 italic-fix">
                ADMIN <span className="text-primary italic">DASHBOARD</span>
             </h1>
-            <p className="font-headline font-bold text-on-surface-variant uppercase text-xs tracking-widest opacity-60">CDGI Sports Sphere Management Hub</p>
+            <p className="font-headline font-bold text-on-surface-variant uppercase text-[10px] tracking-widest opacity-60">CDGI Sports Sphere Management Hub</p>
           </div>
           <button
             onClick={() => setShowModal(true)}
@@ -240,7 +252,7 @@ export default function AdminDashboard() {
             <div key={label} className="bg-surface-container-high/60 backdrop-blur-3xl rounded-3xl p-8 border border-outline-variant/10 shadow-2xl group hover:border-primary/30 transition-all">
               <span className={`material-symbols-outlined text-4xl ${color} mb-4 group-hover:scale-110 transition-transform`} style={{ fontVariationSettings: "'FILL' 1" }}>{icon}</span>
               <p className={`font-headline font-black text-3xl italic tracking-tighter ${color}`}>{value}</p>
-              <p className="text-on-surface-variant text-[10px] font-headline font-black italic uppercase tracking-[0.2em] mt-2 opacity-60">{label}</p>
+              <p className="text-on-surface-variant text-xs font-headline font-black italic uppercase tracking-widest mt-2 opacity-60">{label}</p>
             </div>
           ))}
         </section>
@@ -280,21 +292,25 @@ export default function AdminDashboard() {
                      </div>
 
                      <div className="p-8 flex flex-col flex-1">
-                       <div className="flex justify-between items-start mb-4">
-                          <span className="font-headline font-black italic text-xs uppercase tracking-[0.3em] text-secondary">{ev.sport} Hub</span>
-                          <div className="flex items-center gap-1 text-[10px] font-bold text-on-surface-variant">
+                        <div className="flex justify-between items-start mb-4">
+                           <span className="font-headline font-black italic text-xs uppercase tracking-widest text-secondary">{ev.sport} Hub</span>
+                           <div className="flex items-center gap-1 text-xs font-bold text-on-surface-variant">
                              <span className="material-symbols-outlined text-sm">schedule</span>
-                             {new Date(ev.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                             {ev.date === ev.end_date || !ev.end_date ? (
+                               new Date(ev.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
+                             ) : (
+                               `${new Date(ev.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} - ${new Date(ev.end_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}`
+                             )}
                           </div>
                        </div>
                        
                        <h4 className="font-headline font-black italic text-2xl uppercase tracking-tighter mb-4 leading-none group-hover:text-primary transition-colors line-clamp-1">{ev.name}</h4>
                        
                        <div className="space-y-4 mb-8">
-                         <div className="flex justify-between items-end mb-1">
-                            <span className="text-[10px] font-headline font-black italic uppercase tracking-widest text-on-surface-variant">PERSONNEL LOAD</span>
-                            <span className="text-xs font-black italic text-primary">{ev.registered_count || 0} / {ev.max_participants || 50}</span>
-                         </div>
+                          <div className="flex justify-between items-end mb-1">
+                             <span className="text-xs font-headline font-black italic uppercase tracking-widest text-on-surface-variant">PERSONNEL LOAD</span>
+                             <span className="text-xs font-black italic text-primary">{ev.registered_count || 0} / {ev.max_participants || 50}</span>
+                          </div>
                          <div className="h-2 w-full bg-surface-container-highest rounded-full overflow-hidden border border-outline-variant/10">
                             <div className={`h-full rounded-full transition-all duration-1000 ${regPct >= 100 ? 'bg-red-500' : regPct > 70 ? 'bg-yellow-400' : 'bg-primary'}`} style={{ width: `${regPct}%` }} />
                          </div>
@@ -303,11 +319,11 @@ export default function AdminDashboard() {
                        <div className="mt-auto space-y-4">
                           {/* Lifecycle Change */}
                           <div className="relative group/sel">
-                            <select
-                              value={ev.status}
-                              onChange={e => quickStatusChange(ev, e.target.value)}
-                              className="w-full bg-surface-container-low border border-outline-variant/10 text-[11px] font-headline font-black italic uppercase tracking-widest py-3 px-4 rounded-xl outline-none focus:border-primary transition-all appearance-none cursor-pointer"
-                            >
+                             <select
+                               value={ev.status}
+                               onChange={e => quickStatusChange(ev, e.target.value)}
+                               className="w-full bg-surface-container-low border border-outline-variant/10 text-xs font-headline font-black italic uppercase tracking-widest py-3 px-4 rounded-xl outline-none focus:border-primary transition-all appearance-none cursor-pointer"
+                             >
                               {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                             </select>
                             <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">expand_more</span>
@@ -315,10 +331,10 @@ export default function AdminDashboard() {
 
                           <div className="flex gap-2">
                              {(ev.status === 'ongoing' || ev.status === 'completed') && (
-                                <button 
-                                  onClick={() => openWinnerModal(ev.id)}
-                                  className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-black font-headline font-black italic text-[10px] uppercase tracking-widest py-3 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
-                                >
+                                 <button 
+                                   onClick={() => openWinnerModal(ev.id)}
+                                   className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-black font-headline font-black italic text-xs uppercase tracking-widest py-3 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
+                                 >
                                    <span className="material-symbols-outlined text-sm">emoji_events</span>
                                    VICTOR
                                 </button>
@@ -342,17 +358,17 @@ export default function AdminDashboard() {
 
       {/* Main Event Config Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[1000] flex items-center justify-center p-6 lg:p-12 overflow-y-auto" onClick={e => e.target === e.currentTarget && closeModal()}>
-          <div className="bg-surface-container-high border border-outline-variant/10 rounded-[40px] w-full max-w-4xl shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-primary via-secondary to-primary" />
-            <div className="p-10 lg:p-16">
-              <div className="flex justify-between items-start mb-10">
-                <div>
-                   <h2 className="font-headline font-black italic text-4xl md:text-5xl uppercase tracking-tighter mb-2">
-                     EVENT <span className="text-primary italic">SETUP</span>
-                   </h2>
-                   <p className="text-[10px] font-headline font-black italic text-on-surface-variant uppercase tracking-[0.4em]">Configuration Protocol: SPORTS-EVENT-SYS-01</p>
-                </div>
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[1000] flex items-start justify-center p-4 lg:p-12 overflow-y-auto transition-all duration-500" onClick={e => e.target === e.currentTarget && closeModal()}>
+          <div className="bg-surface-container-high border border-outline-variant/10 rounded-[40px] w-full max-w-4xl shadow-2xl relative my-8 lg:my-auto">
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-primary via-secondary to-primary rounded-t-[40px]" />
+            <div className="p-10 lg:p-16 pt-12 lg:pt-20">
+              <div className="flex justify-between items-start mb-12">
+                 <div>
+                    <h2 className="font-headline font-black italic text-3xl md:text-5xl uppercase tracking-tighter leading-relaxed py-6 mb-3 italic-fix">
+                      EVENT <span className="text-primary italic">SETUP</span>
+                    </h2>
+                    <p className="text-xs font-headline font-black italic text-on-surface-variant uppercase tracking-widest opacity-60">Configuration Protocol: SPORTS-EVENT-SYS-01</p>
+                 </div>
                 <button onClick={closeModal} className="w-12 h-12 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface-variant hover:text-error transition-colors">
                   <span className="material-symbols-outlined text-3xl">close</span>
                 </button>
@@ -362,7 +378,7 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                    <div className="md:col-span-2 space-y-8">
                       <div className="group">
-                        <label className="text-[10px] font-headline font-black italic uppercase tracking-widest text-on-surface-variant mb-3 block group-focus-within:text-primary transition-colors">Event Title</label>
+                        <label className="text-xs font-headline font-black italic uppercase tracking-widest text-on-surface-variant mb-3 block group-focus-within:text-primary transition-colors">Event Title</label>
                         <input
                           type="text"
                           className="w-full bg-surface-container-low border-b-2 border-outline-variant focus:border-primary py-4 text-2xl font-headline font-black italic text-on-surface outline-none transition-all placeholder:opacity-30"
@@ -385,32 +401,50 @@ export default function AdminDashboard() {
                            </select>
                          </div>
                          <div className="group">
-                           <label className="text-[10px] font-headline font-black uppercase tracking-widest text-on-surface-variant mb-2 block">Event Date</label>
+                           <label className="text-[10px] font-headline font-black uppercase tracking-widest text-on-surface-variant mb-2 block">Start Date</label>
                            <input
                              type="date"
                              className="w-full bg-surface-container-highest px-4 py-4 rounded-2xl font-headline font-bold text-xs uppercase tracking-widest border border-outline-variant focus:border-primary outline-none transition-all"
                              value={newEvent.date}
-                             onChange={e => setNewEvent({ ...newEvent, date: e.target.value })}
+                             onChange={e => {
+                               const newDate = e.target.value;
+                               setNewEvent({ 
+                                 ...newEvent, 
+                                 date: newDate, 
+                                 end_date: (!newEvent.end_date || newEvent.end_date < newDate) ? newDate : newEvent.end_date 
+                               });
+                             }}
+                             required
+                           />
+                         </div>
+                         <div className="group">
+                           <label className="text-[10px] font-headline font-black uppercase tracking-widest text-on-surface-variant mb-2 block">End Date</label>
+                           <input
+                             type="date"
+                             className="w-full bg-surface-container-highest px-4 py-4 rounded-2xl font-headline font-bold text-xs uppercase tracking-widest border border-outline-variant focus:border-primary outline-none transition-all"
+                             value={newEvent.end_date || newEvent.date}
+                             min={newEvent.date}
+                             onChange={e => setNewEvent({ ...newEvent, end_date: e.target.value })}
                              required
                            />
                          </div>
                       </div>
 
                       <div className="group">
-                         <label className="text-[10px] font-headline font-black italic uppercase tracking-widest text-on-surface-variant mb-3 block group-focus-within:text-primary transition-colors">Eligibility Summary (Required)</label>
-                         <input
-                           type="text"
-                           className="w-full bg-surface-container-low border-b border-outline-variant focus:border-primary py-3 text-sm font-bold text-on-surface outline-none transition-all"
-                           placeholder="E.G. OPEN TO ALL UNDERGRADS"
-                           value={newEvent.eligibility}
-                           onChange={e => setNewEvent({ ...newEvent, eligibility: e.target.value })}
-                           required
-                         />
-                      </div>
+                          <label className="text-xs font-headline font-black italic uppercase tracking-widest text-on-surface-variant mb-3 block group-focus-within:text-primary transition-colors">Eligibility Summary (Required)</label>
+                          <input
+                            type="text"
+                            className="w-full bg-surface-container-low border-b border-outline-variant focus:border-primary py-3 text-sm font-bold text-on-surface outline-none transition-all placeholder:opacity-50"
+                            placeholder="E.G. OPEN TO ALL UNDERGRADS"
+                            value={newEvent.eligibility}
+                            onChange={e => setNewEvent({ ...newEvent, eligibility: e.target.value })}
+                            required
+                          />
+                       </div>
                    </div>
 
                    <div className="bg-surface-container-low p-8 rounded-[30px] border border-outline-variant/10 space-y-6">
-                      <h4 className="text-[10px] font-headline font-black uppercase tracking-widest text-primary mb-2">REGISTRATION RULES</h4>
+                      <h4 className="text-xs font-headline font-black uppercase tracking-widest text-primary mb-2">REGISTRATION RULES</h4>
                       
                       <div className="space-y-4">
                          <div>
@@ -462,23 +496,92 @@ export default function AdminDashboard() {
                          <p className="text-[9px] font-bold text-on-surface-variant/40 italic uppercase">{newEvent.allowed_branches === 'All' ? 'OPEN TO ALL DEPARTMENTS' : `RESTRICT TO: ${newEvent.allowed_branches}`}</p>
                       </div>
                    </div>
+                   
+                   <div className="md:col-span-3 bg-surface-container-low p-8 rounded-[30px] border border-outline-variant/10 space-y-6">
+                      <h4 className="text-xs font-headline font-black uppercase tracking-widest text-primary mb-2">EVENT LOGISTICS</h4>
+                      
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
+                        <div className="group">
+                          <label className="text-[10px] font-headline font-black uppercase tracking-widest text-on-surface-variant mb-2 block">Event Format</label>
+                          <select
+                            className="w-full bg-surface-container-highest px-4 py-4 rounded-2xl font-headline font-bold text-xs uppercase tracking-widest border border-outline-variant focus:border-primary outline-none transition-all appearance-none"
+                            value={newEvent.event_format}
+                            onChange={e => setNewEvent({ ...newEvent, event_format: e.target.value })}
+                          >
+                            {['Knockout', 'League', 'Group Stage', 'Individual Showcase', 'Team Event'].map(f => <option key={f}>{f}</option>)}
+                          </select>
+                        </div>
+                        <div className="group">
+                          <label className="text-[10px] font-headline font-black uppercase tracking-widest text-on-surface-variant mb-2 block">Gender Category</label>
+                          <select
+                            className="w-full bg-surface-container-highest px-4 py-4 rounded-2xl font-headline font-bold text-xs uppercase tracking-widest border border-outline-variant focus:border-primary outline-none transition-all appearance-none"
+                            value={newEvent.gender_category}
+                            onChange={e => setNewEvent({ ...newEvent, gender_category: e.target.value })}
+                          >
+                            {['Open for All', "Men's", "Women's", 'Mixed'].map(f => <option key={f}>{f}</option>)}
+                          </select>
+                        </div>
+                        <div className="group">
+                          <label className="text-[10px] font-headline font-black uppercase tracking-widest text-on-surface-variant mb-2 block">Venue / Ground</label>
+                          <input
+                            type="text"
+                            className="w-full bg-surface-container-highest px-4 py-4 rounded-2xl font-headline font-bold text-xs uppercase tracking-widest border border-outline-variant focus:border-primary outline-none transition-all placeholder:opacity-50"
+                            placeholder="E.G. MAIN COURT"
+                            value={newEvent.venue}
+                            onChange={e => setNewEvent({ ...newEvent, venue: e.target.value })}
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="group">
+                          <label className="text-[10px] font-headline font-black uppercase tracking-widest text-on-surface-variant mb-2 block">Equipment Constraints</label>
+                          <input
+                            type="text"
+                            className="w-full bg-surface-container-highest px-4 py-4 rounded-2xl font-headline font-bold text-xs uppercase tracking-widest border border-outline-variant focus:border-primary outline-none transition-all placeholder:opacity-50"
+                            placeholder="E.G. BRING YOUR OWN RACQUETS"
+                            value={newEvent.equipment}
+                            onChange={e => setNewEvent({ ...newEvent, equipment: e.target.value })}
+                          />
+                        </div>
+                        <div className="group">
+                          <label className="text-[10px] font-headline font-black uppercase tracking-widest text-on-surface-variant mb-2 block">Prize Pool / Recognition</label>
+                          <input
+                            type="text"
+                            className="w-full bg-surface-container-highest px-4 py-4 rounded-2xl font-headline font-bold text-xs uppercase tracking-widest border border-outline-variant focus:border-primary outline-none transition-all placeholder:opacity-50"
+                            placeholder="E.G. GOLD MEDALS + ₹5000"
+                            value={newEvent.prize_pool}
+                            onChange={e => setNewEvent({ ...newEvent, prize_pool: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                    <div>
-                      <label className="text-[10px] font-headline font-black italic uppercase tracking-widest text-on-surface-variant mb-3 block">Event Description</label>
+                      <label className="text-xs font-headline font-black italic uppercase tracking-widest text-on-surface-variant mb-3 block">Event Description</label>
                       <textarea
-                        rows={3}
-                        className="w-full bg-surface-container-highest p-6 rounded-[30px] border border-outline-variant/10 focus:border-primary outline-none transition-all placeholder:opacity-20 text-sm font-bold text-on-surface-variant"
-                        placeholder="Provide details about the event structure and rules..."
+                        rows={2}
+                        className="w-full bg-surface-container-highest p-6 rounded-[30px] border border-outline-variant/10 focus:border-primary outline-none transition-all placeholder:opacity-20 text-sm font-bold text-on-surface-variant mb-6"
+                        placeholder="Provide marketing description about the event..."
                         value={newEvent.description}
                         onChange={e => setNewEvent({ ...newEvent, description: e.target.value })}
+                      />
+                      <label className="text-xs font-headline font-black italic uppercase tracking-widest text-on-surface-variant mb-3 block">Match Rules & Regulations</label>
+                      <textarea
+                        rows={3}
+                        className="w-full bg-surface-container-highest p-6 rounded-[30px] border border-outline-variant/10 focus:border-secondary outline-none transition-all placeholder:opacity-20 text-sm font-bold text-on-surface-variant"
+                        placeholder="E.g. Time limits, foul system, specific tournament guidelines..."
+                        value={newEvent.rules}
+                        onChange={e => setNewEvent({ ...newEvent, rules: e.target.value })}
                       />
                    </div>
                    <div className="space-y-8">
                       <div className="grid grid-cols-2 gap-4">
                          <div>
-                            <label className="text-[10px] font-headline font-black italic uppercase tracking-widest text-on-surface-variant mb-2 block">Event Status</label>
+                            <label className="text-xs font-headline font-black italic uppercase tracking-widest text-on-surface-variant mb-2 block">Event Status</label>
                             <select
                               className="w-full bg-surface-container-highest px-4 py-4 rounded-2xl font-headline font-bold text-xs uppercase border border-outline-variant focus:border-primary outline-none transition-all"
                               value={newEvent.status}
@@ -488,7 +591,7 @@ export default function AdminDashboard() {
                             </select>
                          </div>
                          <div>
-                            <label className="text-[10px] font-headline font-black italic uppercase tracking-widest text-on-surface-variant mb-2 block">Participant Limit</label>
+                            <label className="text-xs font-headline font-black italic uppercase tracking-widest text-on-surface-variant mb-2 block">Participant Limit</label>
                             <input
                               type="number"
                               className="w-full bg-surface-container-highest px-4 py-4 rounded-2xl font-headline font-bold text-xs uppercase border border-outline-variant focus:border-primary outline-none transition-all"
@@ -497,17 +600,62 @@ export default function AdminDashboard() {
                             />
                          </div>
                       </div>
-                      <div className="group">
-                        <label className="text-[10px] font-headline font-black italic uppercase tracking-widest text-on-surface-variant mb-2 block group-focus-within:text-primary transition-colors">Event Image (URL)</label>
-                        <input
-                          type="url"
-                          className="w-full bg-surface-container-highest px-4 py-4 rounded-2xl font-headline font-bold text-xs border border-outline-variant focus:border-primary outline-none transition-all"
-                          placeholder="HTTPS://IMAGE-URL.PNG"
-                          value={newEvent.image_url}
-                          onChange={e => setNewEvent({ ...newEvent, image_url: e.target.value })}
-                        />
-                      </div>
-                   </div>
+                       <div className="group">
+                         <label className="text-xs font-headline font-black italic uppercase tracking-widest text-on-surface-variant mb-2 block group-focus-within:text-primary transition-colors">Event Image (URL)</label>
+                         <input
+                           type="url"
+                           className="w-full bg-surface-container-highest px-4 py-4 rounded-2xl font-headline font-bold text-xs border border-outline-variant focus:border-primary outline-none transition-all"
+                           placeholder="HTTPS://IMAGE-URL.PNG"
+                           value={newEvent.image_url}
+                           onChange={e => setNewEvent({ ...newEvent, image_url: e.target.value })}
+                         />
+                       </div>
+                       
+                       <div className="grid grid-cols-2 gap-4">
+                         <div>
+                            <label className="text-[10px] font-headline font-black italic uppercase tracking-widest text-on-surface-variant mb-2 block">Entry Fee (₹)</label>
+                            <input
+                              type="number"
+                              className="w-full bg-surface-container-highest px-4 py-4 rounded-2xl font-headline font-bold text-xs uppercase border border-outline-variant focus:border-primary outline-none transition-all"
+                              value={newEvent.entry_fee}
+                              onChange={e => setNewEvent({ ...newEvent, entry_fee: parseInt(e.target.value) || 0 })}
+                            />
+                         </div>
+                         <div>
+                            <label className="text-[10px] font-headline font-black italic uppercase tracking-widest text-on-surface-variant mb-2 block">Payment QR Code URL</label>
+                            <input
+                              type="text"
+                              className="w-full bg-surface-container-highest px-4 py-4 rounded-2xl font-headline font-bold text-xs border border-outline-variant focus:border-primary outline-none transition-all placeholder:opacity-50"
+                              placeholder="URL to QR Image"
+                              value={newEvent.payment_qrcode}
+                              onChange={e => setNewEvent({ ...newEvent, payment_qrcode: e.target.value })}
+                            />
+                         </div>
+                       </div>
+
+                       <div className="grid grid-cols-2 gap-4">
+                         <div>
+                            <label className="text-[10px] font-headline font-black italic uppercase tracking-widest text-on-surface-variant mb-2 block">Coordinator Name</label>
+                            <input
+                              type="text"
+                              className="w-full bg-surface-container-highest px-4 py-4 rounded-2xl font-headline font-bold text-xs uppercase border border-outline-variant focus:border-primary outline-none transition-all placeholder:opacity-50"
+                              placeholder="Faculty Name"
+                              value={newEvent.coordinator_name}
+                              onChange={e => setNewEvent({ ...newEvent, coordinator_name: e.target.value })}
+                            />
+                         </div>
+                         <div>
+                            <label className="text-[10px] font-headline font-black italic uppercase tracking-widest text-on-surface-variant mb-2 block">Coordinator Contact</label>
+                            <input
+                              type="text"
+                              className="w-full bg-surface-container-highest px-4 py-4 rounded-2xl font-headline font-bold text-xs uppercase border border-outline-variant focus:border-primary outline-none transition-all placeholder:opacity-50"
+                              placeholder="Phone / Email"
+                              value={newEvent.coordinator_contact}
+                              onChange={e => setNewEvent({ ...newEvent, coordinator_contact: e.target.value })}
+                            />
+                         </div>
+                       </div>
+                    </div>
                 </div>
 
                 <div className="pt-6 flex gap-4">
@@ -573,10 +721,10 @@ export default function AdminDashboard() {
                        </div>
 
                        <div className="group">
-                          <label className="text-[10px] font-headline font-black uppercase tracking-widest text-on-surface-variant mb-2 block">Performance Logs / Citations</label>
+                          <label className="text-xs font-headline font-black uppercase tracking-widest text-on-surface-variant mb-2 block">Performance Logs / Citations</label>
                           <textarea 
                             rows={3}
-                            className="w-full bg-surface-container-highest p-6 rounded-3xl border border-outline-variant/10 focus:border-yellow-500/30 outline-none transition-all placeholder:opacity-20 text-sm font-bold text-on-surface-variant"
+                            className="w-full bg-surface-container-highest p-6 rounded-3xl border border-outline-variant/10 focus:border-yellow-500/30 outline-none transition-all placeholder:opacity-50 text-sm font-bold text-on-surface-variant"
                             placeholder="Detail the metrics of victory..."
                             value={winnerDetails}
                             onChange={e => setWinnerDetails(e.target.value)}

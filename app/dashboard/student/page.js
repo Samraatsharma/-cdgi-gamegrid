@@ -81,7 +81,7 @@ export default function StudentDashboard() {
                 <div className="absolute inset-0 bg-gradient-to-t from-surface-container-high md:bg-gradient-to-r md:from-transparent md:to-surface-container-high/60" />
                 <div className="absolute bottom-6 left-6">
                    <div className="bg-primary text-on-primary px-4 py-2 rounded-xl border border-primary/30 shadow-2xl">
-                      <p className="text-[9px] font-headline font-black italic uppercase tracking-widest leading-none mb-1">Victor Records</p>
+                      <p className="text-[9px] font-headline font-black italic uppercase tracking-widest leading-none mb-1">Matches Won</p>
                       <p className="text-3xl font-headline font-black italic tracking-tighter leading-none">{user.wins || 0} W</p>
                    </div>
                 </div>
@@ -94,8 +94,8 @@ export default function StudentDashboard() {
                       <p className="text-primary font-headline font-black italic tracking-[0.3em] uppercase text-xs">{user.roll_number || 'IDENT-PENDING'}</p>
                    </div>
                    <div className="text-right">
-                      <p className="text-[10px] font-headline font-black italic uppercase tracking-widest text-on-surface-variant mb-1">Rank Status</p>
-                      <p className="text-secondary font-headline font-black italic uppercase tracking-widest text-sm">ELITE S-LEVEL</p>
+                      <p className="text-[10px] font-headline font-black italic uppercase tracking-widest text-on-surface-variant mb-1">Status</p>
+                      <p className="text-secondary font-headline font-black italic uppercase tracking-widest text-sm">ACTIVE ATHLETE</p>
                    </div>
                 </div>
 
@@ -118,9 +118,9 @@ export default function StudentDashboard() {
 
                 <div className="grid grid-cols-3 gap-6">
                   {[
-                    ['Total Events', registrations.length, 'text-primary'],
+                    ['Total Registrations', registrations.length, 'text-primary'],
                     ['Upcoming Events', upcoming.length, 'text-secondary'],
-                    ['Verified Wins', user.wins || 0, 'text-yellow-500'],
+                    ['Total Wins', user.wins || 0, 'text-yellow-500'],
                   ].map(([label, val, cls]) => (
                     <div key={label} className="bg-surface-container/60 p-4 rounded-2xl border border-outline-variant/10 hover:border-primary/20 transition-all group">
                       <span className="block text-on-surface-variant font-headline font-black italic text-[8px] uppercase tracking-widest mb-1 opacity-60">{label}</span>
@@ -138,10 +138,9 @@ export default function StudentDashboard() {
                <div className="bg-surface-container-high/60 backdrop-blur-3xl p-6 rounded-[2rem] border border-outline-variant/10 hover:border-yellow-500/40 transition-all cursor-pointer group shadow-xl">
                   <div className="flex items-center justify-between mb-4">
                      <span className="material-symbols-outlined text-yellow-500 text-3xl group-hover:scale-110 transition-transform">emoji_events</span>
-                     <span className="text-[10px] font-headline font-black italic uppercase tracking-widest text-on-surface-variant">CDGI Overall Rank</span>
                   </div>
-                  <h3 className="font-headline font-black italic text-xl uppercase tracking-tighter mb-1">Leaderboard</h3>
-                  <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">Compare metrics across the arena</p>
+                  <h3 className="font-headline font-black italic text-xl uppercase tracking-tighter mb-1">College Leaderboard</h3>
+                  <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">Compare metrics across the campus</p>
                </div>
             </Link>
             
@@ -149,28 +148,27 @@ export default function StudentDashboard() {
                <div className="bg-surface-container-high/60 backdrop-blur-3xl p-6 rounded-[2rem] border border-outline-variant/10 hover:border-secondary/40 transition-all cursor-pointer group shadow-xl">
                   <div className="flex items-center justify-between mb-4">
                      <span className="material-symbols-outlined text-secondary text-3xl group-hover:rotate-12 transition-transform">calendar_month</span>
-                     <span className="text-[10px] font-headline font-black italic uppercase tracking-widest text-on-surface-variant">Schedule Sync</span>
                   </div>
-                  <h3 className="font-headline font-black italic text-xl uppercase tracking-tighter mb-1">Event Calendar</h3>
+                  <h3 className="font-headline font-black italic text-xl uppercase tracking-tighter mb-1">Sports Calendar</h3>
                   <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">Official sports scheduling</p>
                </div>
             </Link>
 
             <Link href="/events" className="flex-1">
                <div className="bg-primary p-6 rounded-[2.5rem] hover:scale-[1.02] transition-all cursor-pointer shadow-[0_15px_40px_rgba(184,253,55,0.3)] flex flex-col justify-center items-center text-center">
-                  <span className="material-symbols-outlined text-on-primary text-4xl mb-2">bolt</span>
-                  <p className="font-headline font-black italic text-on-primary uppercase tracking-widest text-lg">NEW REGISTRATION</p>
-                  <p className="text-on-primary/60 text-[10px] font-bold uppercase tracking-widest mt-1">Register for current events</p>
+                  <span className="material-symbols-outlined text-on-primary text-4xl mb-2">add_circle</span>
+                  <p className="font-headline font-black italic text-on-primary uppercase tracking-widest text-lg">REGISTER NEW</p>
+                  <p className="text-on-primary/60 text-[10px] font-bold uppercase tracking-widest mt-1">Browse and join events</p>
                </div>
             </Link>
           </div>
         </div>
 
-        {/* Mission Inventory */}
+        {/* Registrations List */}
         <div className="mb-12 relative z-10">
            <div className="flex justify-between items-end mb-8">
               <h2 className="font-headline font-black italic text-3xl uppercase tracking-tighter flex items-center gap-4">
-                 REGISTERED <span className="text-primary italic">MISSIONS</span>
+                 MY <span className="text-primary italic">REGISTRATIONS</span>
                  <span className="bg-surface-container text-xs font-bold px-3 py-1 rounded-full text-on-surface-variant">{registrations.length}</span>
               </h2>
            </div>
@@ -180,9 +178,9 @@ export default function StudentDashboard() {
            ) : registrations.length === 0 ? (
              <div className="bg-surface-container/30 p-24 rounded-[3rem] border-2 border-dashed border-outline-variant/20 text-center">
                 <span className="material-symbols-outlined text-7xl text-on-surface-variant/20 mb-6">explore_off</span>
-                <p className="text-on-surface-variant font-headline italic font-bold text-2xl uppercase opacity-40">No active directives found.</p>
+                <p className="text-on-surface-variant font-headline italic font-bold text-2xl uppercase opacity-40">No active event registrations.</p>
                 <Link href="/events">
-                   <button className="mt-8 px-10 py-4 bg-primary text-on-primary font-headline font-black italic rounded-2xl hover:scale-105 transition-all shadow-xl">EXPLORE ARENA</button>
+                   <button className="mt-8 px-10 py-4 bg-primary text-on-primary font-headline font-black italic rounded-2xl hover:scale-105 transition-all shadow-xl">VIEW ALL EVENTS</button>
                 </Link>
              </div>
            ) : (
@@ -205,18 +203,23 @@ export default function StudentDashboard() {
                              </span>
                           </div>
                        </div>
-                       
-                       <div className="p-8 flex flex-col flex-1">
+                                              <div className="p-8 flex flex-col flex-1">
                           <div className="flex justify-between items-start mb-4">
-                             <span className="text-secondary font-headline font-black italic text-[10px] uppercase tracking-[0.3em]">{reg.sport} Division</span>
-                             <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">{new Date(reg.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+                             <span className="text-secondary font-headline font-black italic text-[10px] uppercase tracking-[0.3em]">{reg.sport}</span>
+                             <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                               {reg.date === reg.end_date || !reg.end_date ? (
+                                 new Date(reg.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+                               ) : (
+                                 `${new Date(reg.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} - ${new Date(reg.end_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`
+                               )}
+                             </span>
                           </div>
                           
                           <h3 className="font-headline font-black italic text-2xl uppercase tracking-tighter mb-4 leading-none group-hover:text-primary transition-colors">{reg.event_name}</h3>
                           
                           <div className="mt-auto pt-6 border-t border-outline-variant/5 flex gap-3">
                              <Link href={`/events/${reg.event_id}`} className="flex-1">
-                                <button className="w-full py-3.5 bg-surface-container-highest text-on-surface font-headline font-black italic uppercase text-[10px] tracking-widest rounded-xl hover:border-primary border border-outline-variant/10 transition-all">ANALYZE</button>
+                                <button className="w-full py-3.5 bg-surface-container-highest text-on-surface font-headline font-black italic uppercase text-[10px] tracking-widest rounded-xl hover:border-primary border border-outline-variant/10 transition-all">VIEW DETAILS</button>
                              </Link>
                              {reg.status !== 'completed' && reg.status !== 'ongoing' && (
                                <button 
@@ -224,7 +227,7 @@ export default function StudentDashboard() {
                                  disabled={isCancelling}
                                  className="w-12 h-12 bg-surface-container-low text-error/40 hover:text-error hover:bg-error/10 border border-outline-variant/10 rounded-xl flex items-center justify-center transition-all disabled:opacity-50"
                                >
-                                 <span className="material-symbols-outlined text-xl">{isCancelling ? 'progress_activity' : 'scan_delete'}</span>
+                                 <span className="material-symbols-outlined text-xl">{isCancelling ? 'progress_activity' : 'delete'}</span>
                                </button>
                              )}
                           </div>
