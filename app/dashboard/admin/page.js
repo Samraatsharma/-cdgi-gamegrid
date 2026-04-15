@@ -358,9 +358,9 @@ export default function AdminDashboard() {
 
       {/* Main Event Config Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[1000] flex items-start justify-center p-4 lg:p-12 overflow-y-auto transition-all duration-500" onClick={e => e.target === e.currentTarget && closeModal()}>
-          <div className="bg-surface-container-high border border-outline-variant/10 rounded-[40px] w-full max-w-4xl shadow-2xl relative my-8 lg:my-auto">
-            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-primary via-secondary to-primary rounded-t-[40px]" />
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[1000] flex items-center justify-center p-4 lg:p-12 transition-all duration-500" onClick={e => e.target === e.currentTarget && closeModal()}>
+          <div className="bg-surface-container-high border border-outline-variant/10 rounded-[40px] w-full max-w-4xl shadow-2xl relative max-h-[80vh] overflow-y-auto modal-scroll-target">
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-primary via-secondary to-primary" />
             <div className="p-10 lg:p-16 pt-12 lg:pt-20">
               <div className="flex justify-between items-start mb-12">
                  <div>
@@ -677,7 +677,7 @@ export default function AdminDashboard() {
       {/* Victor Declaration Modal */}
       {showWinnerModal && (
         <div className="fixed inset-0 bg-black/95 backdrop-blur-2xl z-[1100] flex items-center justify-center p-6" onClick={e => e.target === e.currentTarget && closeWinnerModal()}>
-           <div className="bg-surface-container-high border-2 border-yellow-500/30 rounded-[40px] w-full max-w-2xl shadow-[0_0_100px_rgba(234,179,8,0.2)] relative overflow-hidden">
+           <div className="bg-surface-container-high border-2 border-yellow-500/30 rounded-[40px] w-full max-w-2xl shadow-[0_0_100px_rgba(234,179,8,0.2)] relative max-h-[80vh] overflow-y-auto modal-scroll-target">
               <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-yellow-500 via-white to-yellow-500 animate-pulse" />
               <div className="p-10 lg:p-14">
                  <div className="text-center mb-10">

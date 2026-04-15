@@ -416,7 +416,7 @@ export default function EventDetail() {
       {/* Payment Processing Modal */}
       {showPaymentModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-surface-container-high border border-outline-variant/20 rounded-3xl p-8 max-w-md w-full shadow-2xl relative max-h-[85vh] overflow-y-auto">
+          <div className="bg-surface-container-high border border-outline-variant/20 rounded-3xl p-8 max-w-md w-full shadow-2xl relative max-h-[85vh] overflow-y-auto modal-scroll-target">
             <button 
               onClick={() => { setShowPaymentModal(false); setScreenshotPreview(null); }}
               className="absolute top-6 right-6 text-on-surface-variant hover:text-white"
