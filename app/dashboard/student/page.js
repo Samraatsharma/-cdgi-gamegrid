@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import SideNav from '../../../components/SideNav';
 import { toast } from 'react-hot-toast';
+import { useAuth } from '../../../lib/auth-context';
 
 const STATUS_CONFIG = {
   registration_open: { label: 'Open', color: 'bg-primary/20 text-primary', dot: 'bg-primary' },
@@ -15,19 +16,18 @@ const STATUS_CONFIG = {
 
 export default function StudentDashboard() {
   const router = useRouter();
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
   const [registrations, setRegistrations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(null);
 
   useEffect(() => {
-    const usrStr = localStorage.getItem('user');
-    if (!usrStr) { router.push('/login'); return; }
-    const usr = JSON.parse(usrStr);
-    if (usr.role !== 'student') { router.push('/dashboard/admin'); return; }
-    setUser(usr);
-    fetchRegistrations(usr.id);
-  }, [router]);
+    if (!user) return;
+    if (user.role === 'admin') { router.push('/dashboard/admin'); return; }
+    if (user.role === 'coordinator') { router.push('/dashboard/coordinator'); return; }
+    if (user.role !== 'student') { router.push('/login'); return; }
+    fetchRegistrations(user.id);
+  }, [user, router]);
 
   const fetchRegistrations = (studentId) => {
     fetch(`/api/registrations?student_id=${studentId}`)

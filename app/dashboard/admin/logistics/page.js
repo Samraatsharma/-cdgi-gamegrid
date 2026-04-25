@@ -3,17 +3,19 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import SideNav from '../../../../components/SideNav';
+import { useAuth } from '../../../../lib/auth-context';
 
 export default function Logistics() {
   const router = useRouter();
+  const { user } = useAuth();
   const [logistics, setLogistics] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const user = localStorage.getItem('user');
-    if (!user || JSON.parse(user).role !== 'admin') { router.push('/login'); return; }
+    if (!user) return;
+    if (user.role !== 'admin') { router.push('/login'); return; }
     fetchLogistics();
-  }, []);
+  }, [user]);
 
   const fetchLogistics = async () => {
     const res = await fetch('/api/logistics');

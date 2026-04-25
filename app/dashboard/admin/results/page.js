@@ -4,21 +4,23 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import SideNav from '../../../../components/SideNav';
 import { toast } from 'react-hot-toast';
+import { useAuth } from '../../../../lib/auth-context';
 
 export default function DeclareResults() {
   const router = useRouter();
+  const { user } = useAuth();
   const [events, setEvents] = useState([]);
   const [selectedEventId, setSelectedEventId] = useState('');
   const [resultData, setResultData] = useState({ winner: '', details: '' });
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    const user = localStorage.getItem('user');
-    if (!user || JSON.parse(user).role !== 'admin') { router.push('/login'); return; }
+    if (!user) return;
+    if (user.role !== 'admin') { router.push('/login'); return; }
     fetch('/api/events').then(r => r.json()).then(d => {
       if (d.success) setEvents(d.events.filter(e => e.status === 'approved'));
     });
-  }, []);
+  }, [user]);
 
   const handleDeclareResult = async (e) => {
     e.preventDefault();

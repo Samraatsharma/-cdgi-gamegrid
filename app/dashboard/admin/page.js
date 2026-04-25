@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import SideNav from '../../../components/SideNav';
 import { toast } from 'react-hot-toast';
+import { useAuth } from '../../../lib/auth-context';
+import { DEFAULT_QR, getPaymentQR, isDefaultQR } from '../../../lib/qr-config';
 
 const BLANK_EVENT = { 
   name: '', sport: 'Cricket', date: '', end_date: '', eligibility: '', 
@@ -33,7 +35,7 @@ const ACADEMIC_YEARS = ['1', '2', '3', '4'];
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -52,13 +54,11 @@ export default function AdminDashboard() {
   const [winnerDetails, setWinnerDetails] = useState('');
 
   useEffect(() => {
-    const usrStr = localStorage.getItem('user');
-    if (!usrStr) { router.push('/login'); return; }
-    const usr = JSON.parse(usrStr);
-    if (usr.role !== 'admin') { router.push('/dashboard/student'); return; }
-    setUser(usr);
+    if (!user) return;
+    if (user.role === 'coordinator') { router.push('/dashboard/coordinator'); return; }
+    if (user.role !== 'admin') { router.push('/dashboard/student'); return; }
     fetchData();
-  }, [router]);
+  }, [user, router]);
 
   const fetchData = async () => {
     try {
@@ -626,10 +626,40 @@ export default function AdminDashboard() {
                             <input
                               type="text"
                               className="w-full bg-surface-container-highest px-4 py-4 rounded-2xl font-headline font-bold text-xs border border-outline-variant focus:border-primary outline-none transition-all placeholder:opacity-50"
-                              placeholder="URL to QR Image"
+                              placeholder="Paste QR image URL (optional)"
                               value={newEvent.payment_qrcode}
                               onChange={e => setNewEvent({ ...newEvent, payment_qrcode: e.target.value })}
                             />
+                            <div className="mt-3 flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() => setNewEvent({ ...newEvent, payment_qrcode: '' })}
+                                className={`px-3 py-1.5 rounded-lg text-[9px] font-black italic uppercase tracking-widest transition-all border ${
+                                  !newEvent.payment_qrcode?.trim()
+                                    ? 'bg-primary text-on-primary border-primary shadow-lg'
+                                    : 'bg-surface-container-highest text-on-surface-variant border-outline-variant/20 hover:border-primary/40'
+                                }`}
+                              >
+                                Use Default QR
+                              </button>
+                              <span className={`text-[9px] font-bold uppercase tracking-widest ${
+                                !newEvent.payment_qrcode?.trim() ? 'text-primary' : 'text-green-400'
+                              }`}>
+                                {!newEvent.payment_qrcode?.trim() ? '● DEFAULT QR ACTIVE' : '● CUSTOM QR SET'}
+                              </span>
+                            </div>
+                            {/* QR Preview */}
+                            <div className="mt-3 bg-white rounded-xl p-3 flex flex-col items-center border border-outline-variant/10 shadow-inner">
+                              <img
+                                src={newEvent.payment_qrcode?.trim() || DEFAULT_QR}
+                                alt="QR Preview"
+                                className="w-24 h-24 object-contain rounded-lg"
+                                onError={e => { e.currentTarget.src = DEFAULT_QR; }}
+                              />
+                              <span className="text-[8px] font-bold uppercase tracking-widest text-gray-500 mt-1">
+                                {!newEvent.payment_qrcode?.trim() ? 'DEFAULT QR' : 'CUSTOM QR'} PREVIEW
+                              </span>
+                            </div>
                          </div>
                        </div>
 

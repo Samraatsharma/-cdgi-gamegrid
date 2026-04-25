@@ -5,10 +5,16 @@ export async function GET(req, { params }) {
   try {
     const { id } = await params;
     const db = await openDB();
+
+    // Join with coordinators table to get the coordinator's full info
     const event = await db.get(`
       SELECT e.*,
-        (SELECT COUNT(*) FROM registrations r WHERE r.event_id = e.id) as registered_count
+        (SELECT COUNT(*) FROM registrations r WHERE r.event_id = e.id) as registered_count,
+        c.name AS coord_account_name,
+        c.email AS coord_account_email,
+        c.assigned_sport AS coord_assigned_sport
       FROM events e
+      LEFT JOIN coordinators c ON c.assigned_sport = e.sport
       WHERE e.id = ?
     `, [id]);
     

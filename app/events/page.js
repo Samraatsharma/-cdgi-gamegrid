@@ -5,7 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import TopNav from '../../components/TopNav';
 import Footer from '../../components/Footer';
+import PaymentQRModal from '../../components/PaymentQRModal';
 import { toast } from 'react-hot-toast';
+import { useAuth } from '../../lib/auth-context';
 
 const STATUS_CONFIG = {
   registration_open: { label: 'Open', color: 'bg-primary/20 text-primary border-primary/30', dot: 'bg-primary', canRegister: true },
@@ -50,15 +52,15 @@ function EventsContent() {
   const searchParams = useSearchParams();
   const sportFilter = searchParams?.get('sport');
 
+  const { user } = useAuth();
+
   const [allEvents, setAllEvents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
   const [registrations, setRegistrations] = useState([]);
   const [applying, setApplying] = useState(null);
 
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedEventToApply, setSelectedEventToApply] = useState(null);
-  const [screenshotPreview, setScreenshotPreview] = useState(null);
 
   // Filters
   const [search, setSearch] = useState('');
@@ -68,21 +70,16 @@ function EventsContent() {
   const [eligibilityOnly, setEligibilityOnly] = useState(false);
 
   useEffect(() => {
-    const u = localStorage.getItem('user');
-    if (u) {
-      const parsed = JSON.parse(u);
-      setUser(parsed);
-      if (parsed.role === 'student') {
-        fetch(`/api/registrations?student_id=${parsed.id}`)
-          .then(r => r.json())
-          .then(d => { if (d.success) setRegistrations(d.registrations); });
-      }
+    if (user?.role === 'student') {
+      fetch(`/api/registrations?student_id=${user.id}`)
+        .then(r => r.json())
+        .then(d => { if (d.success) setRegistrations(d.registrations); });
     }
     fetch('/api/events')
       .then(r => r.json())
       .then(d => { if (d.success) setAllEvents(d.events); })
       .finally(() => setLoading(false));
-  }, []);
+  }, [user]);
 
   const checkEligibility = (event) => {
     if (!user || user.role !== 'student') return { eligible: true }; // Admin or Landing visitor
@@ -116,16 +113,7 @@ function EventsContent() {
     }
   };
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setScreenshotPreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+
 
   const handleApply = async (eventId, screenshotUrl = null) => {
     if (!user || user.role !== 'student') { router.push('/login'); return; }
@@ -163,7 +151,6 @@ function EventsContent() {
         setAllEvents(prev => prev.map(e => e.id === eventId ? { ...e, registered_count: (e.registered_count || 0) + 1 } : e));
         
         setShowPaymentModal(false);
-        setScreenshotPreview(null);
         setSelectedEventToApply(null);
       } else {
         toast.error(data.error || 'Registration failed.');
@@ -402,57 +389,14 @@ function EventsContent() {
         </div>
       </div>
 
-      {/* Payment Processing Modal */}
+      {/* Payment Processing Modal — using reusable PaymentQRModal */}
       {showPaymentModal && selectedEventToApply && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-surface-container-high border border-outline-variant/20 rounded-3xl p-8 max-w-md w-full shadow-2xl relative max-h-[85vh] overflow-y-auto">
-            <button 
-              onClick={() => { setShowPaymentModal(false); setScreenshotPreview(null); setSelectedEventToApply(null); }}
-              className="absolute top-6 right-6 text-on-surface-variant hover:text-white"
-            >
-              <span className="material-symbols-outlined">close</span>
-            </button>
-            <h3 className="text-2xl font-headline font-black italic uppercase tracking-tighter mb-2">Complete Payment</h3>
-            <p className="text-on-surface-variant text-sm mb-6">Entry fee for {selectedEventToApply.name} is <strong className="text-primary">₹{selectedEventToApply.entry_fee}</strong>.</p>
-            
-            {selectedEventToApply.payment_qrcode ? (
-              <div className="mb-6 flex flex-col items-center">
-                <img src={selectedEventToApply.payment_qrcode} alt="Payment QR Code" className="w-48 h-48 rounded-xl border-4 border-surface-container-highest mb-2" />
-                <span className="text-[10px] text-on-surface-variant uppercase tracking-widest">Scan to Pay</span>
-              </div>
-            ) : (
-              <div className="mb-6 p-6 bg-surface-container-highest rounded-xl text-center border-2 border-dashed border-outline-variant/30">
-                <span className="material-symbols-outlined text-4xl mb-2 text-primary/40">qr_code_scanner</span>
-                <p className="text-xs uppercase tracking-widest text-on-surface-variant font-bold">No QR Code Provided</p>
-                <p className="text-[10px] text-on-surface-variant/60 mt-1">Contact Coordinator: {selectedEventToApply.coordinator_name} ({selectedEventToApply.coordinator_contact})</p>
-              </div>
-            )}
-
-            <div className="mb-8">
-              <label className="block text-[10px] font-headline font-bold uppercase tracking-widest text-on-surface-variant mb-2">Upload Payment Screenshot</label>
-              <input 
-                type="file" 
-                accept="image/*" 
-                onChange={handleImageUpload}
-                className="w-full text-sm text-on-surface-variant file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:uppercase file:tracking-widest file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all font-body cursor-pointer"
-              />
-              {screenshotPreview && (
-                <div className="mt-4 relative rounded-xl overflow-hidden border border-outline-variant/20 h-32">
-                  <img src={screenshotPreview} alt="Screenshot preview" className="w-full h-full object-cover" />
-                </div>
-              )}
-            </div>
-
-            <button 
-              onClick={() => handleApply(selectedEventToApply.id, screenshotPreview)}
-              disabled={applying === selectedEventToApply.id || !screenshotPreview}
-              className="w-full py-4 rounded-xl font-headline font-black italic text-lg bg-primary text-on-primary shadow-[0_10px_30px_rgba(184,253,55,0.3)] hover:bg-primary-hover disabled:opacity-50 flex items-center justify-center gap-2 transition-all cursor-pointer"
-            >
-              {applying === selectedEventToApply.id ? <span className="material-symbols-outlined animate-spin">refresh</span> : <span className="material-symbols-outlined">verified</span>}
-              {applying === selectedEventToApply.id ? 'PROCESSING...' : 'SUBMIT REGISTRATION'}
-            </button>
-          </div>
-        </div>
+        <PaymentQRModal
+          event={selectedEventToApply}
+          onSubmit={(screenshotUrl) => handleApply(selectedEventToApply.id, screenshotUrl)}
+          onClose={() => { setShowPaymentModal(false); setSelectedEventToApply(null); }}
+          submitting={applying === selectedEventToApply.id}
+        />
       )}
 
       <Footer />

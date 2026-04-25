@@ -7,10 +7,11 @@ import { toast } from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import Papa from 'papaparse';
+import { useAuth } from '../../../../lib/auth-context';
 
 export default function ReportsDashboard() {
   const router = useRouter();
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
   const [events, setEvents] = useState([]);
   const [logistics, setLogistics] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,13 +31,11 @@ export default function ReportsDashboard() {
   const [eventLoading, setEventLoading] = useState(false);
 
   useEffect(() => {
-    const usrStr = localStorage.getItem('user');
-    if (!usrStr) { router.push('/login'); return; }
-    const usr = JSON.parse(usrStr);
-    if (usr.role !== 'admin') { router.push('/dashboard/student'); return; }
-    setUser(usr);
+    if (!user) return;
+    if (user.role === 'coordinator') { router.push('/dashboard/coordinator/reports'); return; }
+    if (user.role !== 'admin') { router.push('/dashboard/student'); return; }
     fetchData();
-  }, [router]);
+  }, [user, router]);
 
   const fetchData = async () => {
     try {
@@ -46,7 +45,7 @@ export default function ReportsDashboard() {
       ]);
       const eventsData = await eventsRes.json();
       const logData = await logRes.json();
-      
+
       if (eventsData.success) {
         setEvents(eventsData.events);
       }
@@ -70,7 +69,7 @@ export default function ReportsDashboard() {
       ]);
       const regData = await regRes.json();
       const teamData = await teamRes.json();
-      
+
       if (regData.success) setEventRegistrations(regData.registrations);
       if (teamData.success) setEventTeams(teamData.team);
     } catch {
@@ -155,7 +154,7 @@ export default function ReportsDashboard() {
   const exportTimeReportPDF = () => {
     const doc = new jsPDF();
     doc.text(`CDGI Sports - Time Report (${timeFilter === 'custom' ? 'Custom' : 'Last ' + timeFilter + ' Days'})`, 14, 15);
-    
+
     const tableColumn = ["Event Name", "Date", "Sport", "Format", "Coordinator", "Venue", "Fee"];
     const tableRows = [];
 
@@ -200,7 +199,7 @@ export default function ReportsDashboard() {
     doc.text(`Prize Pool: ${ev.prize_pool || 'N/A'}`, 14, 70);
     doc.text(`Coordinator: ${ev.coordinator_name || 'N/A'} (${ev.coordinator_contact || 'N/A'})`, 14, 78);
     doc.text(`Total Participants: ${ev.registered_count || 0} / ${ev.max_participants}`, 14, 86);
-    
+
     // Check if team data is populated
     if (eventTeams.length > 0) {
       doc.text(`Teams / Selected Participants: ${eventTeams.length}`, 14, 94);
@@ -211,7 +210,7 @@ export default function ReportsDashboard() {
     autoTable(doc, {
       head: [['ID', 'Name/Event ID', 'Registered At', 'Payment Status']],
       body: eventRegistrations.map(r => [
-        r.id, 
+        r.id,
         r.student_id,
         new Date(r.registered_at).toLocaleString(),
         r.payment_status?.toUpperCase() || 'N/A'
@@ -235,23 +234,23 @@ export default function ReportsDashboard() {
       <main className="ml-20 min-h-screen p-8 lg:p-12 relative">
         <header className="mb-12">
           <div className="flex items-center gap-2 mb-2">
-             <span className="w-1 h-1 rounded-full bg-primary animate-ping" />
-             <p className="text-[10px] font-headline font-black italic uppercase tracking-[0.4em] text-primary">Intelligence Hub</p>
+            <span className="w-1 h-1 rounded-full bg-primary animate-ping" />
+            <p className="text-[10px] font-headline font-black italic uppercase tracking-[0.4em] text-primary">Intelligence Hub</p>
           </div>
           <h1 className="font-headline font-black italic text-5xl tracking-tighter uppercase leading-tight mt-4">
-             REPORT <span className="text-primary">GENERATOR</span>
+            REPORT <span className="text-primary">GENERATOR</span>
           </h1>
         </header>
 
         {/* Tab Selection */}
         <div className="flex gap-4 mb-8">
-          <button 
+          <button
             onClick={() => setActiveTab('time')}
             className={`px-8 py-3 rounded-2xl font-headline font-black italic uppercase tracking-widest text-sm transition-all ${activeTab === 'time' ? 'bg-primary text-on-primary shadow-lg scale-105' : 'bg-surface-container hover:bg-surface-container-high'}`}
           >
             Time-Based Report
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('event')}
             className={`px-8 py-3 rounded-2xl font-headline font-black italic uppercase tracking-widest text-sm transition-all ${activeTab === 'event' ? 'bg-secondary text-on-secondary shadow-lg scale-105' : 'bg-surface-container hover:bg-surface-container-high'}`}
           >
@@ -265,7 +264,7 @@ export default function ReportsDashboard() {
             <div className="flex flex-col md:flex-row gap-6 mb-8 items-end">
               <div className="flex-1">
                 <label className="text-[10px] font-headline font-black uppercase tracking-widest text-on-surface-variant mb-2 block">Date Range</label>
-                <select 
+                <select
                   className="w-full bg-surface-container-highest px-4 py-4 rounded-xl outline-none font-bold text-sm uppercase"
                   value={timeFilter}
                   onChange={e => setTimeFilter(e.target.value)}
@@ -275,7 +274,7 @@ export default function ReportsDashboard() {
                   <option value="custom">Custom Range</option>
                 </select>
               </div>
-              
+
               {timeFilter === 'custom' && (
                 <>
                   <div className="flex-1">
@@ -341,7 +340,7 @@ export default function ReportsDashboard() {
             <div className="flex flex-col md:flex-row gap-6 mb-8 items-end">
               <div className="flex-1">
                 <label className="text-[10px] font-headline font-black uppercase tracking-widest text-on-surface-variant mb-2 block">Select Event</label>
-                <select 
+                <select
                   className="w-full bg-surface-container-highest px-4 py-4 rounded-xl outline-none font-bold text-sm uppercase"
                   value={selectedEventId}
                   onChange={e => setSelectedEventId(e.target.value)}
@@ -350,9 +349,9 @@ export default function ReportsDashboard() {
                   {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name} ({ev.sport})</option>)}
                 </select>
               </div>
-              
-              <button 
-                onClick={exportEventReportPDF} 
+
+              <button
+                onClick={exportEventReportPDF}
                 disabled={!selectedEventId}
                 className="px-8 py-4 bg-primary text-on-primary disabled:opacity-50 hover:scale-105 rounded-xl font-black italic uppercase tracking-widest text-xs flex items-center gap-2 transition-all shadow-lg"
               >
@@ -362,19 +361,19 @@ export default function ReportsDashboard() {
 
             {eventLoading ? (
               <div className="h-40 flex items-center justify-center">
-                 <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
               </div>
             ) : selectedEventId && (
               <div className="space-y-8">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                   <div className="p-5 bg-surface-container rounded-2xl border border-outline-variant/10">
-                      <p className="text-[10px] text-on-surface-variant uppercase tracking-widest mb-1">Total Registrations</p>
-                      <p className="text-2xl font-black italic">{eventRegistrations.length}</p>
-                   </div>
-                   <div className="p-5 bg-surface-container rounded-2xl border border-outline-variant/10">
-                      <p className="text-[10px] text-on-surface-variant uppercase tracking-widest mb-1">Selected Teams/Participants</p>
-                      <p className="text-2xl font-black italic">{eventTeams.length}</p>
-                   </div>
+                  <div className="p-5 bg-surface-container rounded-2xl border border-outline-variant/10">
+                    <p className="text-[10px] text-on-surface-variant uppercase tracking-widest mb-1">Total Registrations</p>
+                    <p className="text-2xl font-black italic">{eventRegistrations.length}</p>
+                  </div>
+                  <div className="p-5 bg-surface-container rounded-2xl border border-outline-variant/10">
+                    <p className="text-[10px] text-on-surface-variant uppercase tracking-widest mb-1">Selected Teams/Participants</p>
+                    <p className="text-2xl font-black italic">{eventTeams.length}</p>
+                  </div>
                 </div>
 
                 <div className="overflow-x-auto rounded-2xl border border-outline-variant/10">

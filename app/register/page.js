@@ -4,9 +4,11 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
+import { useAuth } from '../../lib/auth-context';
 
 export default function Register() {
   const router = useRouter();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({ 
     name: '', email: '', password: '', 
     roll_number: '', branch: '', year: '', 
@@ -41,6 +43,7 @@ export default function Register() {
 
       toast.success('Registration successful! Redirecting to dashboard...');
       localStorage.setItem('user', JSON.stringify(data.user));
+      login(data.user);
       router.push('/dashboard/student');
     } catch (err) {
       toast.error(err.message);

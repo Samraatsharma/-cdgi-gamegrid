@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import TopNav from '../components/TopNav';
+import { useAuth } from '../lib/auth-context';
 import Footer from '../components/Footer';
 
 const SPORTS_CATEGORIES = [
@@ -14,17 +16,10 @@ const SPORTS_CATEGORIES = [
 
 export default function LandingPage() {
   const router = useRouter();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { user, isLoggedIn, getDashboardPath } = useAuth();
   const [featuredEvents, setFeaturedEvents] = useState([]);
 
   useEffect(() => {
-    const user = localStorage.getItem('user');
-    if (user) {
-      setIsLoggedIn(true);
-      // We don't auto-redirect here, as the user might want to see the landing page, 
-      // but we'll show "Go to Dashboard" button instead of Login/Signup.
-    }
-
     fetch('/api/events')
       .then(r => r.json())
       .then(d => {
@@ -34,29 +29,14 @@ export default function LandingPage() {
       });
   }, []);
 
+  // Role-aware dashboard link
+  const dashboardHref = getDashboardPath();
+
   return (
     <div className="bg-surface-container-lowest text-on-surface min-h-screen font-body overflow-x-hidden">
       
-      {/* Navigation (Landing Specific) */}
-      <nav className="fixed top-0 left-0 w-full z-[100] px-8 py-6 flex justify-between items-center transition-all duration-500 bg-gradient-to-b from-surface-container-lowest via-surface-container-lowest/80 to-transparent backdrop-blur-md">
-        <div className="flex items-center gap-2">
-          <h1 className="text-3xl font-black italic tracking-tighter text-primary font-headline">GAME<span className="text-on-surface">GRID</span> <span className="text-primary/80">SPORTS</span></h1>
-        </div>
-        <div className="flex items-center gap-6">
-          {isLoggedIn ? (
-            <Link href="/dashboard/student">
-              <button className="px-6 py-2 bg-primary text-on-primary font-headline font-black italic tracking-widest uppercase hover:scale-105 transition-all shadow-[0_0_20px_rgba(184,253,55,0.3)]">DASHBOARD</button>
-            </Link>
-          ) : (
-            <>
-              <Link href="/login" className="text-xs font-headline font-black italic tracking-widest uppercase hover:text-primary transition-colors">LOGIN</Link>
-              <Link href="/register">
-                <button className="px-6 py-2 bg-primary text-on-primary font-headline font-black italic tracking-widest uppercase hover:scale-105 transition-all shadow-[0_0_20px_rgba(184,253,55,0.3)]">SIGN UP</button>
-              </Link>
-            </>
-          )}
-        </div>
-      </nav>
+      {/* Global TopNav */}
+      <TopNav activeTab="Home" />
 
       {/* Hero Section */}
       <section className="relative h-screen w-full flex items-center px-8 md:px-20 overflow-hidden pt-20">
@@ -73,7 +53,7 @@ export default function LandingPage() {
         <div className="relative z-10 max-w-5xl space-y-8">
           <div className="inline-flex items-center gap-3 px-4 py-1 bg-primary/20 border border-primary/30 backdrop-blur-md rounded-full w-fit">
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            <span className="text-primary font-headline font-bold italic text-xs tracking-widest uppercase">OFFICIAL GAMEGRID ECOSYSTEM</span>
+            <span className="text-primary font-headline font-bold italic text-xs tracking-widest uppercase">CDGI SPORTS MANAGEMENT</span>
           </div>
           
           <h1 className="text-7xl md:text-9xl font-headline font-black italic uppercase leading-[0.8] tracking-tighter" style={{ textShadow: '0 0 40px rgba(184,253,55,0.2)' }}>
@@ -82,7 +62,7 @@ export default function LandingPage() {
           </h1>
           
           <p className="text-lg md:text-2xl text-on-surface-variant max-w-2xl font-light tracking-wide leading-relaxed">
-            The official platform for GameGrid sports management and competitive excellence. Register for upcoming events, track tournament results, and view the global rankings.
+            The official platform for CDGI sports management and competitive excellence. Register for upcoming events, track tournament results, and view the global rankings.
           </p>
 
           <div className="flex flex-wrap gap-6 pt-6">
@@ -135,7 +115,7 @@ export default function LandingPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {featuredEvents.length > 0 ? (
-            featuredEvents.map((ev, i) => (
+            featuredEvents.map((ev) => (
               <div key={ev.id} onClick={() => router.push(`/events/${ev.id}`)} className="group relative rounded-2xl overflow-hidden bg-surface-container-high border border-outline-variant/10 hover:border-primary/30 transition-all duration-500 shadow-xl cursor-pointer">
                 <div className="h-64 relative overflow-hidden">
                   <img src={ev.image_url} alt={ev.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
@@ -168,7 +148,7 @@ export default function LandingPage() {
         
         <div className="mb-16 text-center space-y-4 relative z-10">
           <h2 className="text-5xl md:text-7xl font-headline font-black italic tracking-tighter uppercase leading-none">EXPLORE <span className="text-secondary">DISCIPLINES</span></h2>
-          <p className="text-on-surface-variant font-headline font-bold tracking-widest uppercase text-sm">Official athletic programs at GameGrid Sports</p>
+          <p className="text-on-surface-variant font-headline font-bold tracking-widest uppercase text-sm">Official athletic programs at CDGI Sports</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 relative z-10">
@@ -197,11 +177,11 @@ export default function LandingPage() {
             READY TO <br /> COMPETE?
           </h2>
           <p className="text-on-primary/70 max-w-2xl mx-auto text-lg md:text-2xl font-bold italic uppercase tracking-wider">
-             Join the GameGrid community and manage your sports participation in one high-performance interface.
+             Join the Sports Sphere community and manage your sports participation in one high-performance interface.
           </p>
           <div className="flex flex-wrap justify-center gap-6 pt-4">
             {isLoggedIn ? (
-              <Link href="/dashboard/student">
+              <Link href={dashboardHref}>
                 <button className="px-12 py-5 bg-on-primary text-primary font-headline font-black italic tracking-widest uppercase text-xl hover:scale-105 transition-all shadow-2xl">DASHBOARD</button>
               </Link>
             ) : (

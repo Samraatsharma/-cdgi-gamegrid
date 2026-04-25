@@ -10,7 +10,10 @@
     "build": "npm run build:sqlite && next build",
     "build:sqlite": "npm rebuild sqlite3 --build-from-source",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "setup": "node database/setup.js",
+    "migrate:v2": "node database/migrate_v2.js",
+    "migrate:v3": "node database/migrate_v3.js"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.2.2",
