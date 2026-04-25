@@ -113,43 +113,40 @@ function EventsContent() {
     }
   };
 
-
-
-  const handleApply = async (eventId, screenshotUrl = null) => {
+  const handleApply = async (eventId, paymentData = null) => {
     if (!user || user.role !== 'student') { router.push('/login'); return; }
     
     const event = allEvents.find(e => e.id === eventId);
-    if (event.entry_fee > 0 && !screenshotUrl) {
+    if (event.entry_fee > 0 && !paymentData?.screenshotDataUrl) {
       toast.error('Payment screenshot is required.');
       return;
     }
 
     setApplying(eventId);
     try {
+      const body = { student_id: user.id, event_id: eventId };
+      if (paymentData) {
+        body.payment_screenshot_url = paymentData.screenshotDataUrl;
+        body.transaction_id = paymentData.transactionId;
+        body.payment_amount = paymentData.paymentAmount;
+      }
+
       const res = await fetch('/api/registrations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ student_id: user.id, event_id: eventId, payment_screenshot_url: screenshotUrl }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (data.success) {
-        toast.success('🎉 Registered successfully!');
-        setRegistrations(prev => [...prev, { event_id: eventId }]);
-        
-        // Add Smart Notification
-        const eObj = allEvents.find(e => e.id === eventId);
-        const newNotif = { 
-          id: Date.now(), 
-          title: 'Registration Verified', 
-          message: `Successfully registered for ${eObj?.name}. Check your dashboard for details.`, 
-          time: 'Just now', 
-          type: 'success' 
-        };
-        const notifs = JSON.parse(localStorage.getItem('notifications') || '[]');
-        localStorage.setItem('notifications', JSON.stringify([newNotif, ...notifs]));
-        
-        setAllEvents(prev => prev.map(e => e.id === eventId ? { ...e, registered_count: (e.registered_count || 0) + 1 } : e));
-        
+        if (data.waitlisted) {
+          toast.success(`📋 Added to waitlist (#${data.waitlistPosition}). You'll be notified when a slot opens.`);
+        } else {
+          toast.success('🎉 Registered successfully!');
+        }
+        setRegistrations(prev => [...prev, { event_id: eventId, waitlist_position: data.waitlistPosition || 0 }]);
+        if (!data.waitlisted) {
+          setAllEvents(prev => prev.map(e => e.id === eventId ? { ...e, registered_count: (e.registered_count || 0) + 1 } : e));
+        }
         setShowPaymentModal(false);
         setSelectedEventToApply(null);
       } else {
@@ -302,6 +299,7 @@ function EventsContent() {
               const { eligible, reason } = checkEligibility(ev);
               const isOpen = ev.status === 'registration_open' && !isFull && eligible;
               const isApplying = applying === ev.id;
+              const canWaitlist = ev.status === 'registration_open' && isFull && eligible && !hasApplied;
 
               return (
                 <article key={ev.id} className="group relative">
@@ -363,9 +361,9 @@ function EventsContent() {
                         {user?.role !== 'admin' && (
                           hasApplied ? (
                             <button disabled className="flex-1 bg-primary/10 text-primary font-headline font-black italic py-4 rounded-2xl text-xs border border-primary/30 shadow-inner">
-                              REGISTERED
+                              {registrations.find(r => r.event_id === ev.id)?.waitlist_position > 0 ? 'WAITLISTED' : 'REGISTERED'}
                             </button>
-                          ) : isOpen ? (
+                          ) : isOpen && !isFull ? (
                             <button
                               onClick={() => initiateApply(ev)}
                               disabled={isApplying}
@@ -373,9 +371,17 @@ function EventsContent() {
                             >
                               {isApplying ? '...' : 'REGISTER'}
                             </button>
+                          ) : canWaitlist ? (
+                            <button
+                              onClick={() => initiateApply(ev)}
+                              disabled={isApplying}
+                              className="flex-1 bg-yellow-500 text-black font-headline font-black italic py-4 rounded-2xl text-xs hover:scale-[1.03] transition-all shadow-xl disabled:opacity-60"
+                            >
+                              {isApplying ? '...' : 'JOIN WAITLIST'}
+                            </button>
                           ) : (
                             <button disabled className="flex-1 bg-surface-container-highest text-on-surface-variant/40 font-headline font-black italic py-4 rounded-2xl text-xs border border-outline-variant/10 cursor-not-allowed uppercase tracking-widest">
-                              {isFull ? 'FULL' : !eligible ? 'LOCKED' : 'CLOSED'}
+                              {!eligible ? 'LOCKED' : 'CLOSED'}
                             </button>
                           )
                         )}
@@ -393,7 +399,7 @@ function EventsContent() {
       {showPaymentModal && selectedEventToApply && (
         <PaymentQRModal
           event={selectedEventToApply}
-          onSubmit={(screenshotUrl) => handleApply(selectedEventToApply.id, screenshotUrl)}
+          onSubmit={(paymentData) => handleApply(selectedEventToApply.id, paymentData)}
           onClose={() => { setShowPaymentModal(false); setSelectedEventToApply(null); }}
           submitting={applying === selectedEventToApply.id}
         />

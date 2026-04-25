@@ -1,35 +1,89 @@
 "use client";
 
 import { useState } from 'react';
+import { toast } from 'react-hot-toast';
 import { getPaymentQR, isDefaultQR } from '../lib/qr-config';
+import { validateImageFile, isValidTransactionId, scorePaymentConfidence } from '../lib/api';
+import { HelpTooltip } from './HelpSystem';
 
 /**
- * PaymentQRModal — Reusable payment modal with QR display + screenshot upload.
+ * PaymentQRModal v2 — Enhanced payment modal with:
+ * - Smart file validation (type + size < 2MB)
+ * - Optional transaction ID input
+ * - Amount confirmation
+ * - Payment confidence scoring
+ * - Contextual help tooltips
  * 
  * Props:
- *   event       — The event object (must have: name, entry_fee, payment_qrcode, coordinator_name, coordinator_contact)
- *   onSubmit    — async (screenshotDataUrl) => void — called when user submits
- *   onClose     — () => void — called to dismiss modal
- *   submitting  — boolean — external loading flag
+ *   event       — The event object
+ *   onSubmit    — async ({ screenshotDataUrl, transactionId, paymentAmount, confidence }) => void
+ *   onClose     — () => void
+ *   submitting  — boolean
  */
 export default function PaymentQRModal({ event, onSubmit, onClose, submitting = false }) {
   const [screenshotPreview, setScreenshotPreview] = useState(null);
   const [qrError, setQrError] = useState(false);
+  const [transactionId, setTransactionId] = useState('');
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [txnIdError, setTxnIdError] = useState('');
 
   const qrUrl = getPaymentQR(event);
   const usingDefault = isDefaultQR(event);
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert('File too large. Max 5MB.');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => setScreenshotPreview(reader.result);
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    const validation = validateImageFile(file);
+    if (!validation.valid) {
+      toast.error(validation.error);
+      e.target.value = '';
+      return;
     }
+
+    const reader = new FileReader();
+    reader.onloadend = () => setScreenshotPreview(reader.result);
+    reader.readAsDataURL(file);
+  };
+
+  const handleTxnIdChange = (val) => {
+    setTransactionId(val);
+    if (val && !isValidTransactionId(val)) {
+      setTxnIdError('Transaction ID should be 8-30 alphanumeric characters');
+    } else {
+      setTxnIdError('');
+    }
+  };
+
+  const amountMatches = paymentAmount && parseInt(paymentAmount) === event.entry_fee;
+  const confidence = scorePaymentConfidence({
+    screenshotUploaded: !!screenshotPreview,
+    transactionId,
+    amountMatches,
+  });
+
+  const confidenceConfig = {
+    high: { label: 'High Confidence', color: 'text-green-400 bg-green-500/10 border-green-500/20', icon: 'verified' },
+    medium: { label: 'Medium Confidence', color: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20', icon: 'shield' },
+    low: { label: 'Low Confidence', color: 'text-red-400 bg-red-500/10 border-red-500/20', icon: 'warning' },
+  };
+  const confCfg = confidenceConfig[confidence];
+
+  const handleSubmit = () => {
+    if (!screenshotPreview) {
+      toast.error('Please upload a payment screenshot.');
+      return;
+    }
+    if (txnIdError) {
+      toast.error('Please fix the transaction ID format.');
+      return;
+    }
+    onSubmit({
+      screenshotDataUrl: screenshotPreview,
+      transactionId: transactionId.trim() || null,
+      paymentAmount: paymentAmount ? parseInt(paymentAmount) : null,
+      confidence,
+    });
   };
 
   return (
@@ -66,7 +120,6 @@ export default function PaymentQRModal({ event, onSubmit, onClose, submitting = 
 
           {/* QR Code Display */}
           <div className="mb-6 bg-white rounded-2xl p-6 flex flex-col items-center border border-outline-variant/10 shadow-inner relative overflow-hidden">
-            {/* Badge: Custom vs Default */}
             <span className={`absolute top-3 right-3 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border ${
               usingDefault
                 ? 'bg-yellow-500/20 text-yellow-600 border-yellow-500/30'
@@ -106,7 +159,7 @@ export default function PaymentQRModal({ event, onSubmit, onClose, submitting = 
               <li>Scan the QR code shown above</li>
               <li>Pay exactly <span className="text-primary font-black">₹{event.entry_fee}</span></li>
               <li>Take a <span className="text-primary font-black">screenshot</span> of the payment confirmation</li>
-              <li>Upload the screenshot below</li>
+              <li>Upload the screenshot & enter details below</li>
             </ol>
           </div>
 
@@ -124,18 +177,20 @@ export default function PaymentQRModal({ event, onSubmit, onClose, submitting = 
           )}
 
           {/* Upload Section */}
-          <div className="mb-6">
-            <label className="block text-[10px] font-headline font-black uppercase tracking-widest text-on-surface-variant mb-2">
+          <div className="mb-4">
+            <label className="flex items-center gap-2 text-[10px] font-headline font-black uppercase tracking-widest text-on-surface-variant mb-2">
               Upload Payment Screenshot *
+              <HelpTooltip text="Upload a clear screenshot of your payment confirmation screen showing the amount and transaction status." position="right" />
             </label>
             <input
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/gif,image/webp"
               onChange={handleImageUpload}
               className="w-full text-sm text-on-surface-variant file:mr-4 file:py-2.5 file:px-5 file:rounded-full file:border-0 file:text-xs file:font-bold file:uppercase file:tracking-widest file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all font-body cursor-pointer"
             />
+            <p className="text-[9px] text-on-surface-variant/40 font-bold mt-1">JPEG, PNG, GIF, or WebP • Max 2MB</p>
             {screenshotPreview && (
-              <div className="mt-4 relative rounded-2xl overflow-hidden border-2 border-primary/30 h-36 shadow-lg">
+              <div className="mt-3 relative rounded-2xl overflow-hidden border-2 border-primary/30 h-36 shadow-lg">
                 <img src={screenshotPreview} alt="Screenshot preview" className="w-full h-full object-cover" />
                 <button
                   type="button"
@@ -148,9 +203,74 @@ export default function PaymentQRModal({ event, onSubmit, onClose, submitting = 
             )}
           </div>
 
+          {/* Transaction ID (Optional) */}
+          <div className="mb-4">
+            <label className="flex items-center gap-2 text-[10px] font-headline font-black uppercase tracking-widest text-on-surface-variant mb-2">
+              Transaction ID (Optional)
+              <HelpTooltip text="Enter the UPI transaction ID from your payment app. This helps verify your payment faster. You can find it in your payment history." position="right" />
+            </label>
+            <input
+              type="text"
+              value={transactionId}
+              onChange={(e) => handleTxnIdChange(e.target.value)}
+              placeholder="e.g. UPI123456789012"
+              className={`w-full bg-surface-container-highest px-4 py-3 rounded-xl font-mono text-sm border outline-none transition-all ${
+                txnIdError ? 'border-error focus:border-error' : 'border-outline-variant/20 focus:border-primary'
+              }`}
+            />
+            {txnIdError && <p className="text-[10px] text-error mt-1 font-bold">{txnIdError}</p>}
+          </div>
+
+          {/* Payment Amount Confirmation */}
+          <div className="mb-6">
+            <label className="flex items-center gap-2 text-[10px] font-headline font-black uppercase tracking-widest text-on-surface-variant mb-2">
+              Amount Paid (₹)
+              <HelpTooltip text="Enter the exact amount you paid. This should match the event entry fee of ₹{event.entry_fee} for faster verification." position="right" />
+            </label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant font-bold">₹</span>
+              <input
+                type="number"
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(e.target.value)}
+                placeholder={String(event.entry_fee)}
+                className={`w-full bg-surface-container-highest pl-8 pr-4 py-3 rounded-xl font-headline font-bold text-sm border outline-none transition-all ${
+                  paymentAmount && !amountMatches ? 'border-yellow-500 focus:border-yellow-500' : 'border-outline-variant/20 focus:border-primary'
+                }`}
+              />
+            </div>
+            {paymentAmount && !amountMatches && (
+              <p className="text-[10px] text-yellow-400 mt-1 font-bold flex items-center gap-1">
+                <span className="material-symbols-outlined text-xs">warning</span>
+                Amount doesn't match entry fee (₹{event.entry_fee})
+              </p>
+            )}
+            {amountMatches && (
+              <p className="text-[10px] text-green-400 mt-1 font-bold flex items-center gap-1">
+                <span className="material-symbols-outlined text-xs" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                Amount matches entry fee
+              </p>
+            )}
+          </div>
+
+          {/* Confidence Indicator */}
+          {screenshotPreview && (
+            <div className={`mb-6 flex items-center gap-3 px-4 py-3 rounded-xl border ${confCfg.color}`}>
+              <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>{confCfg.icon}</span>
+              <div>
+                <p className="text-[10px] font-headline font-black uppercase tracking-widest">{confCfg.label}</p>
+                <p className="text-[9px] opacity-60 font-bold">
+                  {confidence === 'high' ? 'All details provided — faster verification likely' :
+                   confidence === 'medium' ? 'Add transaction ID & amount for faster approval' :
+                   'Provide more details for better verification'}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Submit */}
           <button
-            onClick={() => onSubmit(screenshotPreview)}
+            onClick={handleSubmit}
             disabled={submitting || !screenshotPreview}
             className="w-full py-4 rounded-2xl font-headline font-black italic text-lg bg-primary text-on-primary shadow-[0_10px_30px_rgba(184,253,55,0.3)] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 transition-all duration-300"
           >

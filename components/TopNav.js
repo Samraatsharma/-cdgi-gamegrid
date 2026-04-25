@@ -25,17 +25,12 @@ export default function TopNav({ activeTab = '' }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    // Seed initial notifications if empty
-    const savedNotifs = localStorage.getItem('notifications');
-    if (savedNotifs) {
-      setNotifications(JSON.parse(savedNotifs));
-    } else {
-      const initialNotifs = [
-        { id: 1, title: 'Welcome to Sports Sphere', message: 'Complete your profile and view the upcoming events.', time: 'Just now', type: 'info' },
-        { id: 2, title: 'Events are Live', message: 'Registration for upcoming sports events is now open.', time: '2h ago', type: 'success' }
-      ];
-      setNotifications(initialNotifs);
-      localStorage.setItem('notifications', JSON.stringify(initialNotifs));
+    // Fetch notifications from DB
+    if (user && isLoggedIn) {
+      fetch(`/api/notifications?user_id=${user.id}&role=${user.role}`)
+        .then(r => r.json())
+        .then(d => { if (d.success) setNotifications(d.notifications); })
+        .catch(() => {});
     }
 
     // Close notifications on click outside
@@ -44,7 +39,7 @@ export default function TopNav({ activeTab = '' }) {
       window.addEventListener('click', handleOutsideClick);
     }
     return () => window.removeEventListener('click', handleOutsideClick);
-  }, [showNotifications]);
+  }, [showNotifications, user, isLoggedIn]);
 
   // Dynamic dashboard link based on role
   const dashboardHref = user ? (ROLE_DASHBOARDS[user.role] || '/dashboard/student') : '/dashboard/student';
@@ -69,7 +64,7 @@ export default function TopNav({ activeTab = '' }) {
   };
 
   const currentTab = getActiveTab();
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter(n => !n.is_read).length;
   const roleLabel = user ? (ROLE_LABELS[user.role] || 'User') : '';
 
   return (
@@ -122,23 +117,42 @@ export default function TopNav({ activeTab = '' }) {
                 <div className="absolute top-14 right-0 w-80 bg-surface-container-high border border-outline-variant/20 rounded-2xl shadow-2xl overflow-hidden z-50">
                   <div className="p-4 border-b border-outline-variant/10 flex justify-between items-center bg-surface-container-highest">
                     <h4 className="font-headline font-black italic text-xs uppercase tracking-widest">Notifications</h4>
-                    <span
-                      className="text-[10px] font-bold text-primary uppercase cursor-pointer hover:underline"
-                      onClick={() => { setNotifications([]); localStorage.setItem('notifications', '[]'); }}
-                    >
-                      Clear All
-                    </span>
+                    {notifications.length > 0 && (
+                      <span
+                        className="text-[10px] font-bold text-primary uppercase cursor-pointer hover:underline"
+                        onClick={() => {
+                          if (user) {
+                            fetch('/api/notifications', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mark_all_read: true, user_id: user.id }) });
+                          }
+                          setNotifications(prev => prev.map(n => ({ ...n, is_read: 1 })));
+                        }}
+                      >
+                        Mark All Read
+                      </span>
+                    )}
                   </div>
                   <div className="max-h-96 overflow-y-auto">
-                    {notifications.length > 0 ? notifications.map((n) => (
-                      <div key={n.id} className="p-4 border-b border-outline-variant/10 hover:bg-surface-container-highest/50 transition-colors cursor-pointer group">
-                        <div className="flex justify-between items-start mb-1">
-                          <p className={`font-headline font-bold text-[11px] uppercase tracking-wide group-hover:text-primary transition-colors ${n.type === 'success' ? 'text-green-400' : 'text-on-surface'}`}>{n.title}</p>
-                          <span className="text-[9px] text-on-surface-variant/40 font-bold uppercase">{n.time}</span>
+                    {notifications.length > 0 ? notifications.slice(0, 15).map((n) => {
+                      const typeColor = n.type === 'success' ? 'text-green-400' : n.type === 'error' ? 'text-red-400' : n.type === 'warning' ? 'text-yellow-400' : 'text-on-surface';
+                      const timeAgo = n.created_at ? new Date(n.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+                      return (
+                        <div key={n.id} className={`p-4 border-b border-outline-variant/10 hover:bg-surface-container-highest/50 transition-colors cursor-pointer group ${!n.is_read ? 'bg-primary/5 border-l-2 border-l-primary' : ''}`}
+                          onClick={() => {
+                            if (!n.is_read && user) {
+                              fetch('/api/notifications', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: n.id, is_read: true }) });
+                              setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, is_read: 1 } : x));
+                            }
+                            if (n.action_url) window.location.href = n.action_url;
+                          }}
+                        >
+                          <div className="flex justify-between items-start mb-1">
+                            <p className={`font-headline font-bold text-[11px] uppercase tracking-wide group-hover:text-primary transition-colors ${typeColor}`}>{n.title}</p>
+                            <span className="text-[9px] text-on-surface-variant/40 font-bold">{timeAgo}</span>
+                          </div>
+                          <p className="text-[10px] text-on-surface-variant leading-relaxed">{n.message}</p>
                         </div>
-                        <p className="text-[10px] text-on-surface-variant leading-relaxed">{n.message}</p>
-                      </div>
-                    )) : (
+                      );
+                    }) : (
                       <div className="p-8 text-center text-on-surface-variant/40 font-headline italic text-sm">No notifications</div>
                     )}
                   </div>

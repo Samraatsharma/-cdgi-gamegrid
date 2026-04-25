@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import TopNav from '../components/TopNav';
 import { useAuth } from '../lib/auth-context';
 import Footer from '../components/Footer';
+import { FirstTimeTour } from '../components/HelpSystem';
 
 const SPORTS_CATEGORIES = [
   { name: 'Cricket', icon: 'sports_cricket', color: 'text-primary', img: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?q=80&w=800' },
@@ -35,6 +36,9 @@ export default function LandingPage() {
   return (
     <div className="bg-surface-container-lowest text-on-surface min-h-screen font-body overflow-x-hidden">
       
+      {/* First Time User Tour */}
+      <FirstTimeTour />
+
       {/* Global TopNav */}
       <TopNav activeTab="Home" />
 

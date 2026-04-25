@@ -6,6 +6,7 @@ import Link from 'next/link';
 import SideNav from '../../../components/SideNav';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../../lib/auth-context';
+import ProfileCompleteness from '../../../components/ProfileCompleteness';
 
 const STATUS_CONFIG = {
   registration_open: { label: 'Open', color: 'bg-primary/20 text-primary', dot: 'bg-primary' },
@@ -132,8 +133,11 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          {/* Quick Tactical Links */}
+          {/* Quick Links + Profile */}
           <div className="lg:col-span-4 flex flex-col gap-6">
+            {/* Profile Completeness */}
+            <ProfileCompleteness user={user} />
+
             <Link href="/leaderboard">
                <div className="bg-surface-container-high/60 backdrop-blur-3xl p-6 rounded-[2rem] border border-outline-variant/10 hover:border-yellow-500/40 transition-all cursor-pointer group shadow-xl">
                   <div className="flex items-center justify-between mb-4">
@@ -144,16 +148,6 @@ export default function StudentDashboard() {
                </div>
             </Link>
             
-            <Link href="/calendar">
-               <div className="bg-surface-container-high/60 backdrop-blur-3xl p-6 rounded-[2rem] border border-outline-variant/10 hover:border-secondary/40 transition-all cursor-pointer group shadow-xl">
-                  <div className="flex items-center justify-between mb-4">
-                     <span className="material-symbols-outlined text-secondary text-3xl group-hover:rotate-12 transition-transform">calendar_month</span>
-                  </div>
-                  <h3 className="font-headline font-black italic text-xl uppercase tracking-tighter mb-1">Sports Calendar</h3>
-                  <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">Official sports scheduling</p>
-               </div>
-            </Link>
-
             <Link href="/events" className="flex-1">
                <div className="bg-primary p-6 rounded-[2.5rem] hover:scale-[1.02] transition-all cursor-pointer shadow-[0_15px_40px_rgba(184,253,55,0.3)] flex flex-col justify-center items-center text-center">
                   <span className="material-symbols-outlined text-on-primary text-4xl mb-2">add_circle</span>

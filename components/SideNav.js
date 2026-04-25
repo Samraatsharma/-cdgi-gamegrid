@@ -6,6 +6,8 @@ import { useAuth } from '../lib/auth-context';
 
 const adminLinks = [
   { href: '/dashboard/admin',             icon: 'grid_view',         label: 'Dashboard' },
+  { href: '/dashboard/admin/insights',    icon: 'insights',          label: 'Insights' },
+  { href: '/dashboard/admin/payments',    icon: 'receipt_long',      label: 'Payments' },
   { href: '/dashboard/admin/coordinators', icon: 'manage_accounts',  label: 'Coordinators' },
   { href: '/dashboard/admin/trials',      icon: 'sports_score',      label: 'Trials' },
   { href: '/dashboard/admin/team',        icon: 'group',             label: 'Teams' },
